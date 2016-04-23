@@ -1,12 +1,12 @@
 //
-//  RemPPGSimple.cpp
+//  RPPGSimpleBox.cpp
 //  Heartbeat
 //
-//  Created by Philipp Rouast on 29/02/2016.
+//  Created by Philipp Rouast on 6/03/2016.
 //  Copyright © 2016 Philipp Roüast. All rights reserved.
 //
 
-#include "RemPPGSimple.hpp"
+#include "RPPGSimpleBox.hpp"
 #include <opencv2/imgproc/imgproc.hpp>
 #include "opencv2/highgui/highgui.hpp"
 #include <opencv2/core/core.hpp>
@@ -21,22 +21,22 @@ using namespace std;
 #define SIGNAL_SIZE 10
 #define SEC_PER_MIN 60
 
-RemPPGSimple::RemPPGSimple() {
+RPPGSimpleBox::RPPGSimpleBox() {
     rescanInterval = 1;
     samplingFrequency = 1;
 }
 
-void RemPPGSimple::load(const int width, const int height, const double timeBase,
-                        const std::string &faceClassifierFilename,
-                        const std::string &leftEyeClassifierFilename,
-                        const std::string &rightEyeClassifierFilename,
-                        const std::string &logFilepath) {
+void RPPGSimpleBox::load(const int width, const int height, const double timeBase,
+                           const std::string &faceClassifierFilename,
+                           const std::string &leftEyeClassifierFilename,
+                           const std::string &rightEyeClassifierFilename,
+                           const std::string &logFilepath) {
     minFaceSize = cv::Size(cv::min(width, height) * REL_MIN_FACE_SIZE, cv::min(width, height) * REL_MIN_FACE_SIZE);
     faceClassifier.load(faceClassifierFilename);
     leftEyeClassifier.load(rightEyeClassifierFilename);
     rightEyeClassifier.load(leftEyeClassifierFilename);
     std::ostringstream path_1;
-    path_1 << logFilepath << "_simple";
+    path_1 << logFilepath << "_simplebox";
     this->logfilepath = path_1.str();
     mask = cv::Mat::zeros(height, width, CV_8UC1);
     updateFlag = false;
@@ -54,17 +54,17 @@ void RemPPGSimple::load(const int width, const int height, const double timeBase
     logfileDetailed << "time;bpm\n";
 }
 
-void RemPPGSimple::exit() {
+void RPPGSimpleBox::exit() {
     logfile.close();
     logfileDetailed.close();
 }
 
-void RemPPGSimple::processFrame(cv::Mat &frame, long time) {
+void RPPGSimpleBox::processFrame(cv::Mat &frame, long time) {
     
-    cout << "================= SIMPLE =================" << endl;
+    cout << "================= SIMPLE BOX =================" << endl;
     
     this->time = time;
-        
+    
     // Generate grayframe
     Mat grayFrame;
     cv::cvtColor(frame, grayFrame, CV_BGR2GRAY);
@@ -84,7 +84,7 @@ void RemPPGSimple::processFrame(cv::Mat &frame, long time) {
         lastScanTime = time;
         detectFace(frame, grayFrame);
         updateFlag = true;
-    
+        
     }
     
     if (valid) {
@@ -107,7 +107,7 @@ void RemPPGSimple::processFrame(cv::Mat &frame, long time) {
         fps = getFps(t, timeBase);
         
         updateFlag = false;
-                
+        
         // If buffer is large enough, send off to estimation
         if (g.rows / fps >= SIGNAL_SIZE) {
             
@@ -125,7 +125,7 @@ void RemPPGSimple::processFrame(cv::Mat &frame, long time) {
     }
 }
 
-void RemPPGSimple::detectFace(cv::Mat &frame, cv::Mat &grayFrame) {
+void RPPGSimpleBox::detectFace(cv::Mat &frame, cv::Mat &grayFrame) {
     
     cout << "Scanning for faces…" << endl;
     
@@ -150,7 +150,7 @@ void RemPPGSimple::detectFace(cv::Mat &frame, cv::Mat &grayFrame) {
     }
 }
 
-void RemPPGSimple::setNearestBox(std::vector<cv::Rect> boxes) {
+void RPPGSimpleBox::setNearestBox(std::vector<cv::Rect> boxes) {
     int index = 0;
     cv::Point p = box.tl() - boxes.at(0).tl();
     int min = p.x * p.x + p.y * p.y;
@@ -165,22 +165,23 @@ void RemPPGSimple::setNearestBox(std::vector<cv::Rect> boxes) {
     box = boxes.at(index);
 }
 
-void RemPPGSimple::detectEyes(cv::Mat &frame) {
+// TODO left eye never found
+void RPPGSimpleBox::detectEyes(cv::Mat &frame) {
     
     Rect leftEyeROI = Rect(box.tl().x + box.width/16,
                            box.tl().y + box.height/4.5,
                            (box.width - 2*box.width/16)/2,
                            box.height/3.0);
-
+    
     
     Rect rightEyeROI = Rect(box.tl().x + box.width/16 + (box.width - 2*box.width/16)/2,
-                           box.tl().y + box.height/4.5,
-                           (box.width - 2*box.width/16)/2,
-                           box.height/3.0);
+                            box.tl().y + box.height/4.5,
+                            (box.width - 2*box.width/16)/2,
+                            box.height/3.0);
     
     Mat leftSub = frame(leftEyeROI);
     Mat rightSub = frame(rightEyeROI);
-    
+        
     // Detect eyes with Haar classifier
     std::vector<cv::Rect> eyeBoxesLeft;
     leftEyeClassifier.detectMultiScale(leftSub, eyeBoxesLeft, 1.1, 2, 0);
@@ -195,6 +196,7 @@ void RemPPGSimple::detectEyes(cv::Mat &frame) {
         this->leftEye = Rect(tl, br);
     } else {
         cout << "No left eye found" << endl;
+        this->leftEye = leftEyeROI;
     }
     
     if (eyeBoxesRight.size() > 0) {
@@ -205,28 +207,25 @@ void RemPPGSimple::detectEyes(cv::Mat &frame) {
         this->rightEye = Rect(tl, br);
     } else {
         cout << "No right eye found" << endl;
+        this->rightEye = rightEyeROI;
     }
 }
 
-void RemPPGSimple::updateMask() {
+void RPPGSimpleBox::updateMask() {
     
     cout << "Update mask" << endl;
     
+    Point leftEyeCenter = Point(leftEye.tl().x + leftEye.width/2, leftEye.tl().y + leftEye.height/2);
+    Point rightEyeCenter = Point(rightEye.tl().x + rightEye.width/2, rightEye.tl().y + rightEye.height/2);
+    double d = (rightEyeCenter.x - leftEyeCenter.x)/4.0;
+    this->roi = Rect(leftEyeCenter.x + 0.5 * d, leftEyeCenter.y - 2.5 * d, 3 * d, 1.5 * d);
+    
     mask.setTo(BLACK);
-    ellipse(mask,
-            Point(box.tl().x + box.width/2.0, box.tl().y + box.height/2.0),
-            Size(box.width/2.5, box.height/2.0),
-            0, 0, 360, WHITE, FILLED);
-    circle(mask,
-           Point(leftEye.tl().x + leftEye.width/2.0, leftEye.tl().y + leftEye.height/2.0),
-           (leftEye.width + leftEye.height)/4.0, BLACK, FILLED);
-    circle(mask,
-           Point(rightEye.tl().x + rightEye.width/2.0, rightEye.tl().y + rightEye.height/2.0),
-           (rightEye.width + rightEye.height)/4.0, BLACK, FILLED);
+    rectangle(mask, roi, WHITE, FILLED);
 }
 
-void RemPPGSimple::extractSignal_den_detr_mean() {
-
+void RPPGSimpleBox::extractSignal_den_detr_mean() {
+    
     // Denoise
     Mat signalDenoised;
     denoiseFilter2(signal, signalDenoised, jumps);
@@ -256,7 +255,7 @@ void RemPPGSimple::extractSignal_den_detr_mean() {
     log.close();
 }
 
-void RemPPGSimple::estimateHeartrate() {
+void RPPGSimpleBox::estimateHeartrate() {
     
     powerSpectrum = cv::Mat(signal.size(), CV_32F);
     timeToFrequency(signal, powerSpectrum, true);
@@ -321,21 +320,10 @@ void RemPPGSimple::estimateHeartrate() {
     }
 }
 
-void RemPPGSimple::draw(cv::Mat &frame) {
+void RPPGSimpleBox::draw(cv::Mat &frame) {
     
-    // Draw face shape
-    ellipse(frame,
-            Point(box.tl().x + box.width / 2.0, box.tl().y + box.height / 2.0),
-            Size(box.width / 2.5, box.height / 2.0),
-            0, 0, 360, cv::GREEN);
-    circle(frame,
-           Point(leftEye.tl().x + leftEye.width / 2.0, leftEye.tl().y + leftEye.height / 2.0),
-           (leftEye.width + leftEye.height) / 4.0,
-           cv::GREEN);
-    circle(frame,
-           Point(rightEye.tl().x + rightEye.width / 2.0, rightEye.tl().y + rightEye.height / 2.0),
-           (rightEye.width + rightEye.height) / 4.0,
-           cv::GREEN);
+    // Draw ROI
+    rectangle(frame, roi, cv::GREEN);
     
     // Draw signal
     if (!signal.empty() && !powerSpectrum.empty()) {

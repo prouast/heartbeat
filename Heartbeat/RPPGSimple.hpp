@@ -1,52 +1,62 @@
 //
-//  RemPPGSimpleBox.hpp
+//  RPPGSimple.hpp
 //  Heartbeat
 //
-//  Created by Philipp Rouast on 6/03/2016.
+//  Created by Philipp Rouast on 29/02/2016.
 //  Copyright © 2016 Philipp Roüast. All rights reserved.
 //
 
-#ifndef RemPPGSimpleBox_hpp
-#define RemPPGSimpleBox_hpp
+#ifndef RPPGSimple_hpp
+#define RPPGSimple_hpp
 
 #include <string>
 #include <stdio.h>
 #include <fstream>
 #include <opencv2/objdetect/objdetect.hpp>
 
-class RemPPGSimpleBox {
+class RPPGSimple {
     
 public:
-    RemPPGSimpleBox();
     
-    void load(const int width, const int height, const double timeBase,
-              const std::string &faceClassifierFilename,
-              const std::string &leftEyeClassifierFilename,
-              const std::string &rightEyeClassifierFilename,
-              const std::string &logFilepath);
+    // Constructor
+    RPPGSimple(const int width, const int height,
+               const double timeBase,
+               const int samplingFrequency, const int rescanInterval,
+               const std::string &logFileName,
+               const std::string &faceClassifierFilename,
+               const std::string &leftEyeClassifierFilename,
+               const std::string &rightEyeClassifierFilename,
+               const bool log, const bool draw);
+    
     void exit();
-    void processFrame(cv::Mat &frame, long time);
+    void processFrame(cv::Mat &frameRGB, cv::Mat &frameGray, long time);
     
 private:
-    void detectFace(cv::Mat &frame, cv::Mat &grayFrame);
+    
+    void detectFace(cv::Mat &frameRGB, cv::Mat &frameGray);
     void setNearestBox(std::vector<cv::Rect> boxes);
-    void detectEyes(cv::Mat &frame);
+    void detectEyes(cv::Mat &frameRGB);
     void updateMask();
     void extractSignal_den_detr_mean();
     void extractSignal_den_band();
     void estimateHeartrate();
-    void draw(cv::Mat &frame);
-    
+    void draw(cv::Mat &frameRGB);
+        
+    // The classifiers
     cv::CascadeClassifier faceClassifier;
     cv::CascadeClassifier leftEyeClassifier;
     cv::CascadeClassifier rightEyeClassifier;
     
+    // Settings
+    cv::Size minFaceSize;
     double rescanInterval;
     int samplingFrequency;
-    cv::Size minFaceSize;
-    
-    long time;
     double timeBase;
+    bool logMode;
+    bool drawMode;
+    
+    // State variables
+    long time;
     double fps;
     double lastSamplingTime;
     double lastScanTime;
@@ -54,12 +64,13 @@ private:
     bool valid;
     bool updateFlag;
     
+    // Mask
     cv::Rect box;
     cv::Rect rightEye;
     cv::Rect leftEye;
     cv::Mat mask;
-    cv::Rect roi;
     
+    // Signal
     cv::Mat1d g;
     cv::Mat1d t;
     cv::Mat1d jumps;
@@ -69,9 +80,11 @@ private:
     double meanBpm;
     double minBpm;
     double maxBpm;
+    
+    // Logfiles
     std::ofstream logfile;
     std::ofstream logfileDetailed;
     std::string logfilepath;
 };
 
-#endif /* RemPPGSimpleBox_hpp */
+#endif /* RPPGSimple_hpp */

@@ -15,15 +15,15 @@
 		FFBBA18D1C85165F007550E8 /* libX11-xcb.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = FFBBA18B1C85165F007550E8 /* libX11-xcb.1.dylib */; };
 		FFBBA18E1C85165F007550E8 /* libX11.6.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = FFBBA18C1C85165F007550E8 /* libX11.6.dylib */; };
 		FFBBA3001C851867007550E8 /* source.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FFBBA2FF1C851867007550E8 /* source.cpp */; };
-		FFBF39F91C8BD7C300C1FDD9 /* RemPPGSimpleBox.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FFBF39F71C8BD7C300C1FDD9 /* RemPPGSimpleBox.cpp */; };
+		FFBF39F91C8BD7C300C1FDD9 /* RPPGSimpleBox.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FFBF39F71C8BD7C300C1FDD9 /* RPPGSimpleBox.cpp */; };
 		FFDC355A1C87949C00B04501 /* haarcascade_frontalface_alt.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = FFDC35521C87929E00B04501 /* haarcascade_frontalface_alt.xml */; };
 		FFDC355B1C8794A000B04501 /* haarcascade_lefteye_2splits.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = FFDC35531C87929E00B04501 /* haarcascade_lefteye_2splits.xml */; };
 		FFDC355C1C8794A200B04501 /* haarcascade_righteye_2splits.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = FFDC35541C87929E00B04501 /* haarcascade_righteye_2splits.xml */; };
 		FFDC355D1C8794A500B04501 /* shape_predictor_68_face_landmarks.dat in CopyFiles */ = {isa = PBXBuildFile; fileRef = FFDC35551C87929E00B04501 /* shape_predictor_68_face_landmarks.dat */; };
 		FFDC35601C879BB000B04501 /* opencv.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FFDC355E1C879BB000B04501 /* opencv.cpp */; };
-		FFDC35631C8807D800B04501 /* RemPPGDetailed.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FFDC35611C8807D800B04501 /* RemPPGDetailed.cpp */; };
+		FFDC35631C8807D800B04501 /* RPPGDetailed.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FFDC35611C8807D800B04501 /* RPPGDetailed.cpp */; };
 		FFDFC5A11C891C4400C994E3 /* FFmpegDecoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FFDFC59F1C891C4400C994E3 /* FFmpegDecoder.cpp */; };
-		FFECDCE81C843F4D007ED151 /* RemPPGSimple.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FFECDCE61C843F4D007ED151 /* RemPPGSimple.cpp */; };
+		FFECDCE81C843F4D007ED151 /* RPPGSimple.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FFECDCE61C843F4D007ED151 /* RPPGSimple.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -53,20 +53,20 @@
 		FFBBA18B1C85165F007550E8 /* libX11-xcb.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libX11-xcb.1.dylib"; path = "../../../../../opt/X11/lib/libX11-xcb.1.dylib"; sourceTree = "<group>"; };
 		FFBBA18C1C85165F007550E8 /* libX11.6.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libX11.6.dylib; path = ../../../../../opt/X11/lib/libX11.6.dylib; sourceTree = "<group>"; };
 		FFBBA2FF1C851867007550E8 /* source.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = source.cpp; path = dlib/all/source.cpp; sourceTree = "<group>"; };
-		FFBF39F71C8BD7C300C1FDD9 /* RemPPGSimpleBox.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RemPPGSimpleBox.cpp; sourceTree = "<group>"; };
-		FFBF39F81C8BD7C300C1FDD9 /* RemPPGSimpleBox.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = RemPPGSimpleBox.hpp; sourceTree = "<group>"; };
+		FFBF39F71C8BD7C300C1FDD9 /* RPPGSimpleBox.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RPPGSimpleBox.cpp; sourceTree = "<group>"; };
+		FFBF39F81C8BD7C300C1FDD9 /* RPPGSimpleBox.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = RPPGSimpleBox.hpp; sourceTree = "<group>"; };
 		FFDC35521C87929E00B04501 /* haarcascade_frontalface_alt.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = haarcascade_frontalface_alt.xml; path = res/haarcascade_frontalface_alt.xml; sourceTree = "<group>"; };
 		FFDC35531C87929E00B04501 /* haarcascade_lefteye_2splits.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = haarcascade_lefteye_2splits.xml; path = res/haarcascade_lefteye_2splits.xml; sourceTree = "<group>"; };
 		FFDC35541C87929E00B04501 /* haarcascade_righteye_2splits.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = haarcascade_righteye_2splits.xml; path = res/haarcascade_righteye_2splits.xml; sourceTree = "<group>"; };
 		FFDC35551C87929E00B04501 /* shape_predictor_68_face_landmarks.dat */ = {isa = PBXFileReference; lastKnownFileType = file; name = shape_predictor_68_face_landmarks.dat; path = res/shape_predictor_68_face_landmarks.dat; sourceTree = "<group>"; };
 		FFDC355E1C879BB000B04501 /* opencv.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = opencv.cpp; sourceTree = "<group>"; };
 		FFDC355F1C879BB000B04501 /* opencv.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = opencv.hpp; sourceTree = "<group>"; };
-		FFDC35611C8807D800B04501 /* RemPPGDetailed.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RemPPGDetailed.cpp; sourceTree = "<group>"; };
-		FFDC35621C8807D800B04501 /* RemPPGDetailed.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = RemPPGDetailed.hpp; sourceTree = "<group>"; };
+		FFDC35611C8807D800B04501 /* RPPGDetailed.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RPPGDetailed.cpp; sourceTree = "<group>"; };
+		FFDC35621C8807D800B04501 /* RPPGDetailed.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = RPPGDetailed.hpp; sourceTree = "<group>"; };
 		FFDFC59F1C891C4400C994E3 /* FFmpegDecoder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FFmpegDecoder.cpp; sourceTree = "<group>"; };
 		FFDFC5A01C891C4400C994E3 /* FFmpegDecoder.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = FFmpegDecoder.hpp; sourceTree = "<group>"; };
-		FFECDCE61C843F4D007ED151 /* RemPPGSimple.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RemPPGSimple.cpp; sourceTree = "<group>"; };
-		FFECDCE71C843F4D007ED151 /* RemPPGSimple.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = RemPPGSimple.hpp; sourceTree = "<group>"; };
+		FFECDCE61C843F4D007ED151 /* RPPGSimple.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RPPGSimple.cpp; sourceTree = "<group>"; };
+		FFECDCE71C843F4D007ED151 /* RPPGSimple.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = RPPGSimple.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -107,12 +107,12 @@
 			isa = PBXGroup;
 			children = (
 				FFB64BB11C83FA3E00B3766E /* main.cpp */,
-				FFECDCE61C843F4D007ED151 /* RemPPGSimple.cpp */,
-				FFECDCE71C843F4D007ED151 /* RemPPGSimple.hpp */,
-				FFBF39F71C8BD7C300C1FDD9 /* RemPPGSimpleBox.cpp */,
-				FFBF39F81C8BD7C300C1FDD9 /* RemPPGSimpleBox.hpp */,
-				FFDC35611C8807D800B04501 /* RemPPGDetailed.cpp */,
-				FFDC35621C8807D800B04501 /* RemPPGDetailed.hpp */,
+				FFECDCE61C843F4D007ED151 /* RPPGSimple.cpp */,
+				FFECDCE71C843F4D007ED151 /* RPPGSimple.hpp */,
+				FFBF39F71C8BD7C300C1FDD9 /* RPPGSimpleBox.cpp */,
+				FFBF39F81C8BD7C300C1FDD9 /* RPPGSimpleBox.hpp */,
+				FFDC35611C8807D800B04501 /* RPPGDetailed.cpp */,
+				FFDC35621C8807D800B04501 /* RPPGDetailed.hpp */,
 				FFDC355E1C879BB000B04501 /* opencv.cpp */,
 				FFDC355F1C879BB000B04501 /* opencv.hpp */,
 				FFDFC59F1C891C4400C994E3 /* FFmpegDecoder.cpp */,
@@ -203,12 +203,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FFBF39F91C8BD7C300C1FDD9 /* RemPPGSimpleBox.cpp in Sources */,
+				FFBF39F91C8BD7C300C1FDD9 /* RPPGSimpleBox.cpp in Sources */,
 				FFB64BB21C83FA3E00B3766E /* main.cpp in Sources */,
 				FFBBA3001C851867007550E8 /* source.cpp in Sources */,
-				FFDC35631C8807D800B04501 /* RemPPGDetailed.cpp in Sources */,
+				FFDC35631C8807D800B04501 /* RPPGDetailed.cpp in Sources */,
 				FFDC35601C879BB000B04501 /* opencv.cpp in Sources */,
-				FFECDCE81C843F4D007ED151 /* RemPPGSimple.cpp in Sources */,
+				FFECDCE81C843F4D007ED151 /* RPPGSimple.cpp in Sources */,
 				FFDFC5A11C891C4400C994E3 /* FFmpegDecoder.cpp in Sources */,
 				FF4D33E11CA6307C0041EABE /* FFmpegEncoder.cpp in Sources */,
 			);

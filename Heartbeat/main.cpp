@@ -11,9 +11,9 @@
 #include <opencv2/videoio/videoio.hpp>
 #include "opencv2/highgui/highgui.hpp"
 #include <opencv2/imgproc/imgproc.hpp>
-#include "RemPPGSimple.hpp"
-#include "RemPPGSimpleBox.hpp"
-#include "RemPPGDetailed.hpp"
+#include "RPPGSimple.hpp"
+#include "RPPGSimpleBox.hpp"
+#include "RPPGDetailed.hpp"
 #include "opencv.hpp"
 #include "FFmpegDecoder.hpp"
 #include "FFmpegEncoder.hpp"
@@ -49,7 +49,7 @@ int main(int argc, const char * argv[]) {
         // Load video information
         const int WIDTH = decoder.GetWidth();
         const int HEIGHT = decoder.GetHeight();
-        const int FRAME_COUNT = 1000; // TODO PROPERLY!
+        const int FRAME_COUNT = 10000; // TODO PROPERLY!
         const double FPS = decoder.GetFPS();
         const double TIME_BASE = decoder.GetTimeBase();
         
@@ -69,15 +69,16 @@ int main(int argc, const char * argv[]) {
         }
         
         // Set up controller for simple algorithm
-        RemPPGSimple simple = RemPPGSimple();
-        simple.load(WIDTH, HEIGHT, TIME_BASE,
-                    FACE_CLASSIFIER_PATH,
-                    LEFT_EYE_CLASSIFIER_PATH,
-                    RIGHT_EYE_CLASSIFIER_PATH,
-                    LOG_FILE_NAME);
+        RPPGSimple simple = RPPGSimple(WIDTH, HEIGHT,
+                                       TIME_BASE, 1, 1,
+                                       LOG_FILE_NAME,
+                                       FACE_CLASSIFIER_PATH,
+                                       LEFT_EYE_CLASSIFIER_PATH,
+                                       RIGHT_EYE_CLASSIFIER_PATH,
+                                       true, true);
         
         // Set up controller for simple box algorithm
-        RemPPGSimpleBox simpleBox = RemPPGSimpleBox();
+        RPPGSimpleBox simpleBox = RPPGSimpleBox();
         simpleBox.load(WIDTH, HEIGHT, TIME_BASE,
                        FACE_CLASSIFIER_PATH,
                        LEFT_EYE_CLASSIFIER_PATH,
@@ -85,7 +86,7 @@ int main(int argc, const char * argv[]) {
                        LOG_FILE_NAME);
         
         // Set up controller for detailed algorithm
-        RemPPGDetailed detailed = RemPPGDetailed();
+        RPPGDetailed detailed = RPPGDetailed();
         detailed.load(WIDTH, HEIGHT, TIME_BASE,
                       FACE_CLASSIFIER_PATH,
                       LEFT_EYE_CLASSIFIER_PATH,
@@ -102,10 +103,17 @@ int main(int argc, const char * argv[]) {
             AVFrame * decoded = decoder.GetNextFrame();
             
             if (decoded) {
+                
+                // OpenCV frame
                 cv::Mat frame(decoded->height,
                               decoded->width,
                               CV_8UC3,
                               decoded->data[0]);
+                
+                // Generate grayframe
+                Mat grayFrame;
+                cv::cvtColor(frame, grayFrame, CV_BGR2GRAY);
+                cv::equalizeHist(grayFrame, grayFrame);
                 
                 double time = decoded->best_effort_timestamp;
                 Mat frame1;
@@ -113,15 +121,9 @@ int main(int argc, const char * argv[]) {
                 Mat frame2;
                 frame.copyTo(frame2);
                 
-                // C++:
-                // uchar * pointer to the data
-                // uint8_t * [8] pointer to the data
-                // Java:
-                // long dataAddr
-                
                 cout << "TIMESTAMP: " << decoded->best_effort_timestamp << endl;
                 
-                simple.processFrame(frame, time);
+                simple.processFrame(frame, grayFrame, time);
                 simpleBox.processFrame(frame1, time);
                 detailed.processFrame(frame2, time);
                 

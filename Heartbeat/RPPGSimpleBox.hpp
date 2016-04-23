@@ -1,43 +1,37 @@
 //
-//  RemPPGDetailed.hpp
+//  RPPGSimpleBox.hpp
 //  Heartbeat
 //
-//  Created by Philipp Rouast on 3/03/2016.
+//  Created by Philipp Rouast on 6/03/2016.
 //  Copyright © 2016 Philipp Roüast. All rights reserved.
 //
 
-#ifndef RemPPGDetailed_hpp
-#define RemPPGDetailed_hpp
+#ifndef RPPGSimpleBox_hpp
+#define RPPGSimpleBox_hpp
 
 #include <string>
 #include <stdio.h>
-#include <dlib/image_processing.h>
+#include <fstream>
 #include <opencv2/objdetect/objdetect.hpp>
 
-class RemPPGDetailed {
+class RPPGSimpleBox {
     
 public:
-    RemPPGDetailed();
+    RPPGSimpleBox();
     
     void load(const int width, const int height, const double timeBase,
               const std::string &faceClassifierFilename,
               const std::string &leftEyeClassifierFilename,
               const std::string &rightEyeClassifierFilename,
-              const std::string &poseFilename,
               const std::string &logFilepath);
     void exit();
     void processFrame(cv::Mat &frame, long time);
     
-    typedef std::vector<cv::Point> Contour;
-    typedef std::vector<cv::Point2f> Contour2f;
-    
 private:
     void detectFace(cv::Mat &frame, cv::Mat &grayFrame);
     void setNearestBox(std::vector<cv::Rect> boxes);
-    void detectFeatures(cv::Mat &frame);
     void detectEyes(cv::Mat &frame);
     void updateMask();
-    void trackFace(cv::Mat &grayFrame);
     void extractSignal_den_detr_mean();
     void extractSignal_den_band();
     void estimateHeartrate();
@@ -46,21 +40,16 @@ private:
     cv::CascadeClassifier faceClassifier;
     cv::CascadeClassifier leftEyeClassifier;
     cv::CascadeClassifier rightEyeClassifier;
-    dlib::shape_predictor pose_model;
     
     double rescanInterval;
     int samplingFrequency;
     cv::Size minFaceSize;
-    
-    cv::Mat lastGrayFrame;
     
     long time;
     double timeBase;
     double fps;
     double lastSamplingTime;
     double lastScanTime;
-    bool rescan;
-    double nowTC;
     long now;
     bool valid;
     bool updateFlag;
@@ -69,7 +58,7 @@ private:
     cv::Rect rightEye;
     cv::Rect leftEye;
     cv::Mat mask;
-    Contour2f contour;
+    cv::Rect roi;
     
     cv::Mat1d g;
     cv::Mat1d t;
@@ -85,5 +74,4 @@ private:
     std::string logfilepath;
 };
 
-
-#endif /* RemPPGDetailed_hpp */
+#endif /* RPPGSimpleBox_hpp */

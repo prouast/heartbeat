@@ -1,17 +1,15 @@
 //
-//  RemPPGDetailed.cpp
+//  RPPGSimple.cpp
 //  Heartbeat
 //
-//  Created by Philipp Rouast on 3/03/2016.
+//  Created by Philipp Rouast on 29/02/2016.
 //  Copyright © 2016 Philipp Roüast. All rights reserved.
 //
 
-#include "RemPPGDetailed.hpp"
-#include <dlib/opencv.h>
-#include <dlib/image_processing/render_face_detections.h>
+#include "RPPGSimple.hpp"
 #include <opencv2/imgproc/imgproc.hpp>
+#include "opencv2/highgui/highgui.hpp"
 #include <opencv2/core/core.hpp>
-#include <opencv2/video/video.hpp>
 #include "opencv.hpp"
 
 using namespace cv;
@@ -21,91 +19,78 @@ using namespace std;
 #define HIGH_BPM 240
 #define REL_MIN_FACE_SIZE 0.2
 #define SIGNAL_SIZE 10
-#define MIN_TRACKING_POINTS 20
 #define SEC_PER_MIN 60
-#define BOX_FACE_RATIO 1.3
-#define MIN_TRACKING_POINTS 20
 
-RemPPGDetailed::RemPPGDetailed() {
-    rescan = false;
-    rescanInterval = 1;
-    samplingFrequency = 1;
-}
-
-void RemPPGDetailed::load(const int width, const int height, const double timeBase,
-                          const std::string &faceClassifierFilename,
-                          const std::string &leftEyeClassifierFilename,
-                          const std::string &rightEyeClassifierFilename,
-                          const std::string &poseFilename,
-                          const std::string &logFilepath) {
-    minFaceSize = cv::Size(cv::min(width, height) * REL_MIN_FACE_SIZE, cv::min(width, height) * REL_MIN_FACE_SIZE);
+RPPGSimple::RPPGSimple(const int width, const int height,
+                       const double timeBase,
+                       const int samplingFrequency, const int rescanInterval,
+                       const string &logFileName,
+                       const string &faceClassifierFilename,
+                       const string &leftEyeClassifierFilename,
+                       const string &rightEyeClassifierFilename,
+                       const bool log, const bool draw) {
+    
+    this->minFaceSize = cv::Size(cv::min(width, height) * REL_MIN_FACE_SIZE, cv::min(width, height) * REL_MIN_FACE_SIZE);
+    this->rescanInterval = rescanInterval;
+    this->samplingFrequency = samplingFrequency;
+    this->timeBase = timeBase;
+    this->logMode = log;
+    this->drawMode = draw;
+    this->updateFlag = false;
+    this->mask = cv::Mat::zeros(height, width, CV_8UC1);
+    
+    // Load classifiers
     faceClassifier.load(faceClassifierFilename);
     leftEyeClassifier.load(rightEyeClassifierFilename);
     rightEyeClassifier.load(leftEyeClassifierFilename);
-    dlib::deserialize(poseFilename) >> pose_model;
-    std::ostringstream path_1;
-    path_1 << logFilepath << "_detailed";
-    this->logfilepath = path_1.str();
-    mask = cv::Mat::zeros(height, width, CV_8UC1);
-    updateFlag = false;
-    this->timeBase = timeBase;
     
-    // Logging
+    // Setting up logfilepath
+    std::ostringstream path_1;
+    path_1 << logFileName << "_simple";
+    this->logfilepath = path_1.str();
+    
+    // Logging bpm according to sampling frequency
     std::ostringstream path_2;
     path_2 << logfilepath << "_bpm.csv";
     logfile.open(path_2.str());
     logfile << "time;mean;min;max\n";
     
+    // Logging bpm detailed
     std::ostringstream path_3;
     path_3 << logfilepath << "_bpmDetailed.csv";
     logfileDetailed.open(path_3.str());
     logfileDetailed << "time;bpm\n";
 }
 
-void RemPPGDetailed::exit() {
+void RPPGSimple::exit() {
     logfile.close();
     logfileDetailed.close();
 }
 
-void RemPPGDetailed::processFrame(cv::Mat &frame, long time) {
+void RPPGSimple::processFrame(cv::Mat &frameRGB, cv::Mat &frameGray, long time) {
     
-    cout << "================= DETAILED =================" << endl;
+    cout << "================= SIMPLE =================" << endl;
     
+    // Set time
     this->time = time;
-        
-    // Generate grayframe
-    Mat grayFrame;
-    cv::cvtColor(frame, grayFrame, CV_BGR2GRAY);
-    cv::equalizeHist(grayFrame, grayFrame);
     
     if (!valid) {
         
         cout << "Not valid, finding a new face" << endl;
         
         lastScanTime = time;
-        detectFace(frame, grayFrame);
+        detectFace(frameRGB, frameGray);
         
     } else if ((time - lastScanTime) * timeBase >= rescanInterval) {
         
         cout << "Valid, but rescanning face" << endl;
         
         lastScanTime = time;
-        detectFace(frame, grayFrame);
+        detectFace(frameRGB, frameGray);
         updateFlag = true;
-        rescan = false;
-        
-    } else {
-        
-        cout << "Tracking face" << endl;
-        trackFace(grayFrame);
     }
     
     if (valid) {
-        
-        // Update face bounding box
-        cv::Rect bR = cv::boundingRect(contour);
-        box = cv::Rect(bR.x-(BOX_FACE_RATIO-1)/2*bR.width, bR.y-(BOX_FACE_RATIO-1)/2*bR.height,
-                                BOX_FACE_RATIO*bR.width, BOX_FACE_RATIO*bR.height);
         
         fps = getFps(t, timeBase);
         
@@ -117,7 +102,7 @@ void RemPPGDetailed::processFrame(cv::Mat &frame, long time) {
         }
         
         // Add new values to buffer
-        Scalar means = mean(frame, mask);
+        Scalar means = mean(frameRGB, mask);
         g.push_back<double>(means(1));
         jumps.push_back<bool>(updateFlag ? true : false);
         t.push_back<long>(time);
@@ -125,7 +110,7 @@ void RemPPGDetailed::processFrame(cv::Mat &frame, long time) {
         fps = getFps(t, timeBase);
         
         updateFlag = false;
-        
+                
         // If buffer is large enough, send off to estimation
         if (g.rows / fps >= SIGNAL_SIZE) {
             
@@ -139,26 +124,24 @@ void RemPPGDetailed::processFrame(cv::Mat &frame, long time) {
             estimateHeartrate();
         }
         
-        draw(frame);
+        draw(frameRGB);
     }
-    
-    grayFrame.copyTo(lastGrayFrame);
 }
 
-void RemPPGDetailed::detectFace(cv::Mat &frame, cv::Mat &grayFrame) {
+void RPPGSimple::detectFace(cv::Mat &frameRGB, cv::Mat &frameGray) {
     
     cout << "Scanning for faces…" << endl;
     
     // Detect faces with Haar classifier
     std::vector<cv::Rect> boxes;
-    faceClassifier.detectMultiScale(grayFrame, boxes, 1.1, 2, CV_HAAR_SCALE_IMAGE, minFaceSize);
+    faceClassifier.detectMultiScale(frameGray, boxes, 1.1, 2, CV_HAAR_SCALE_IMAGE, minFaceSize);
     
     if (boxes.size() > 0) {
         
         cout << "Found a face" << endl;
         
         setNearestBox(boxes);
-        detectFeatures(frame);
+        detectEyes(frameRGB);
         updateMask();
         valid = true;
         
@@ -170,7 +153,7 @@ void RemPPGDetailed::detectFace(cv::Mat &frame, cv::Mat &grayFrame) {
     }
 }
 
-void RemPPGDetailed::setNearestBox(std::vector<cv::Rect> boxes) {
+void RPPGSimple::setNearestBox(std::vector<cv::Rect> boxes) {
     int index = 0;
     cv::Point p = box.tl() - boxes.at(0).tl();
     int min = p.x * p.x + p.y * p.y;
@@ -185,47 +168,21 @@ void RemPPGDetailed::setNearestBox(std::vector<cv::Rect> boxes) {
     box = boxes.at(index);
 }
 
-void RemPPGDetailed::detectFeatures(cv::Mat &frame) {
-    
-    // Convert image for dlib
-    dlib::cv_image<dlib::bgr_pixel> cimg(frame);
-    
-    std::cout << "Detecting features…" << std::endl;
-    
-    // Extract features using one Millisecond Face Alignment with an Ensemble of Regression Trees by Vahid Kazemi and Josephine Sullivan
-    dlib::full_object_detection shape = pose_model(cimg, dlib::rectangle(box.x, box.y,
-                                                                         box.width + box.x,
-                                                                         box.height + box.y));
-    
-    // Features
-    Contour2f features2f;
-    for (size_t i = 0; i < shape.num_parts(); i++) {
-        features2f.push_back(cv::Point2f(shape.part(i).x(), shape.part(i).y()));
-    }
-    
-    // Set contour
-    cv::convexHull(features2f, contour);
-    
-    // Detect eyes
-    detectEyes(frame);
-}
-
-// TODO left eye never found
-void RemPPGDetailed::detectEyes(cv::Mat &frame) {
+void RPPGSimple::detectEyes(cv::Mat &frameRGB) {
     
     Rect leftEyeROI = Rect(box.tl().x + box.width/16,
                            box.tl().y + box.height/4.5,
                            (box.width - 2*box.width/16)/2,
                            box.height/3.0);
-    
+
     
     Rect rightEyeROI = Rect(box.tl().x + box.width/16 + (box.width - 2*box.width/16)/2,
-                            box.tl().y + box.height/4.5,
-                            (box.width - 2*box.width/16)/2,
-                            box.height/3.0);
+                           box.tl().y + box.height/4.5,
+                           (box.width - 2*box.width/16)/2,
+                           box.height/3.0);
     
-    Mat leftSub = frame(leftEyeROI);
-    Mat rightSub = frame(rightEyeROI);
+    Mat leftSub = frameRGB(leftEyeROI);
+    Mat rightSub = frameRGB(rightEyeROI);
     
     // Detect eyes with Haar classifier
     std::vector<cv::Rect> eyeBoxesLeft;
@@ -254,70 +211,25 @@ void RemPPGDetailed::detectEyes(cv::Mat &frame) {
     }
 }
 
-void RemPPGDetailed::updateMask() {
+void RPPGSimple::updateMask() {
     
     cout << "Update mask" << endl;
     
     mask.setTo(BLACK);
-    
-    /*
-     ellipse(mask,
-     Point(box.tl().x + box.width/2.0, box.tl().y + box.height/2.0),
-     Size(box.width/2.5, box.height/2.0),
-     0, 0, 360, WHITE, FILLED);
-     */
-    
-    Contour features;
-    cv::Mat(contour).copyTo(features);
-    typedef std::vector<Contour> Contours;
-    cv::drawContours(mask, Contours(1, features), -1, cv::WHITE, CV_FILLED, CV_AA, cv::noArray(), 1, -cv::Rect(0, 0, mask.rows, mask.cols).tl()); // The offset for drawContours has to be *minus* roi.tl();
-    
+    ellipse(mask,
+            Point(box.tl().x + box.width/2.0, box.tl().y + box.height/2.0),
+            Size(box.width/2.5, box.height/2.0),
+            0, 0, 360, WHITE, FILLED);
     circle(mask,
            Point(leftEye.tl().x + leftEye.width/2.0, leftEye.tl().y + leftEye.height/2.0),
            (leftEye.width + leftEye.height)/4.0, BLACK, FILLED);
     circle(mask,
            Point(rightEye.tl().x + rightEye.width/2.0, rightEye.tl().y + rightEye.height/2.0),
            (rightEye.width + rightEye.height)/4.0, BLACK, FILLED);
-
 }
 
-void RemPPGDetailed::trackFace(cv::Mat &grayFrame) {
-    
-    //std::cout << "Tracking face…" << std::endl;
-    
-    Contour2f contour_1;
-    Contour2f contour_0r;
-    std::vector<uchar> contourFound_1;
-    std::vector<uchar> contourFound_0r;
-    cv::Mat err;
-    
-    // Track face features with Kanade-Lucas-Tomasi (KLT) algorithm
-    // Backtrack once to make it more robust
-    cv::calcOpticalFlowPyrLK(lastGrayFrame, grayFrame, contour, contour_1, contourFound_1, err);
-    cv::calcOpticalFlowPyrLK(grayFrame, lastGrayFrame, contour_1, contour_0r, contourFound_0r, err);
-    
-    Contour2f contour_1g;
-    
-    for (size_t j = 0; j < contour.size(); j++) {
-        if (contourFound_1[j] && contourFound_0r[j]
-            && cv::norm(contour[j]-contour_0r[j]) < 2) {
-            contour_1g.push_back(contour_1[j]);
-        } else {
-            //std::cout << "Mis!" << std::endl;
-        }
-    }
-    
-    if (contour_1g.size() < MIN_TRACKING_POINTS) {
-        std::cout << "Will rescan; less than " << MIN_TRACKING_POINTS << " trackng points!" << std::endl;
-        rescan = true;
-    }
-    
-    // Save updated features
-    contour = contour_1g;
-}
+void RPPGSimple::extractSignal_den_detr_mean() {
 
-void RemPPGDetailed::extractSignal_den_detr_mean() {
-    
     // Denoise
     Mat signalDenoised;
     denoiseFilter2(signal, signalDenoised, jumps);
@@ -329,25 +241,26 @@ void RemPPGDetailed::extractSignal_den_detr_mean() {
     // Moving average
     Mat signalMeaned;
     meanFilter(signalDetrended, signalMeaned, 3, fps/3);
-    
     signalMeaned.copyTo(signal);
     
     // Logging
-    std::ofstream log;
-    std::ostringstream filepath;
-    filepath << logfilepath << "_signal_" << time << ".csv";
-    log.open(filepath.str());
-    log << "g;g_den;g_detr;g_avg\n";
-    for (int i = 0; i < g.rows; i++) {
-        log << g.at<double>(i, 0) << ";";
-        log << signalDenoised.at<double>(i, 0) << ";";
-        log << signalDetrended.at<double>(i, 0) << ";";
-        log << signalMeaned.at<double>(i, 0) << "\n";
+    if (logMode) {
+        std::ofstream log;
+        std::ostringstream filepath;
+        filepath << logfilepath << "_signal_" << time << ".csv";
+        log.open(filepath.str());
+        log << "g;g_den;g_detr;g_avg\n";
+        for (int i = 0; i < g.rows; i++) {
+            log << g.at<double>(i, 0) << ";";
+            log << signalDenoised.at<double>(i, 0) << ";";
+            log << signalDetrended.at<double>(i, 0) << ";";
+            log << signalMeaned.at<double>(i, 0) << "\n";
+        }
+        log.close();
     }
-    log.close();
 }
 
-void RemPPGDetailed::estimateHeartrate() {
+void RPPGSimple::estimateHeartrate() {
     
     powerSpectrum = cv::Mat(signal.size(), CV_32F);
     timeToFrequency(signal, powerSpectrum, true);
@@ -373,18 +286,20 @@ void RemPPGDetailed::estimateHeartrate() {
         cout << "FPS=" << fps << " Vals=" << powerSpectrum.rows << " Peak=" << pmax.y << " BPM=" << bpm << endl;
         
         // Logging
-        std::ofstream log;
-        std::ostringstream filepath;
-        filepath << logfilepath << "_estimation_" << time << ".csv";
-        log.open(filepath.str());
-        log << "i;powerSpectrum\n";
-        for (int i = 0; i < powerSpectrum.rows; i++) {
-            if (low <= i && i <= high) {
-                log << i << ";";
-                log << powerSpectrum.at<float>(i, 0) << "\n";
+        if (logMode) {
+            std::ofstream log;
+            std::ostringstream filepath;
+            filepath << logfilepath << "_estimation_" << time << ".csv";
+            log.open(filepath.str());
+            log << "i;powerSpectrum\n";
+            for (int i = 0; i < powerSpectrum.rows; i++) {
+                if (low <= i && i <= high) {
+                    log << i << ";";
+                    log << powerSpectrum.at<float>(i, 0) << "\n";
+                }
             }
+            log.close();
         }
-        log.close();
         
         logfileDetailed << time << ";";
         logfileDetailed << bpm << "\n";
@@ -412,26 +327,21 @@ void RemPPGDetailed::estimateHeartrate() {
     }
 }
 
-void RemPPGDetailed::draw(cv::Mat &frame) {
-    
-    cv::Scalar color = rescan ? cv::RED : cv::GREEN;
-    
-    Contour features;
-    cv::Mat(contour).copyTo(features);
+void RPPGSimple::draw(cv::Mat &frameRGB) {
     
     // Draw face shape
-    for (int i = 0; i < contour.size(); i++) {
-        typedef std::vector<Contour> Contours;
-        cv::drawContours(frame, Contours(1, features), -1, cv::Scalar(0,0,255), 1, CV_AA, cv::noArray(), 1, -cv::Rect(0, 0, frame.rows, frame.cols) .tl()); // The offset for drawContours has to be *minus* roi.tl();
-    }
-    circle(frame,
+    ellipse(frameRGB,
+            Point(box.tl().x + box.width / 2.0, box.tl().y + box.height / 2.0),
+            Size(box.width / 2.5, box.height / 2.0),
+            0, 0, 360, cv::GREEN);
+    circle(frameRGB,
            Point(leftEye.tl().x + leftEye.width / 2.0, leftEye.tl().y + leftEye.height / 2.0),
            (leftEye.width + leftEye.height) / 4.0,
-           color);
-    circle(frame,
+           cv::GREEN);
+    circle(frameRGB,
            Point(rightEye.tl().x + rightEye.width / 2.0, rightEye.tl().y + rightEye.height / 2.0),
            (rightEye.width + rightEye.height) / 4.0,
-           color);
+           cv::GREEN);
     
     // Draw signal
     if (!signal.empty() && !powerSpectrum.empty()) {
@@ -452,7 +362,7 @@ void RemPPGDetailed::draw(cv::Mat &frame) {
         Point p2;
         for (int i = 1; i < signal.rows; i++) {
             p2 = Point(drawAreaTlX + i * widthMult, drawAreaTlY + (vmax - signal.at<double>(i, 0))*heightMult);
-            line(frame, p1, p2, RED, 2);
+            line(frameRGB, p1, p2, RED, 2);
             p1 = p2;
         }
         
@@ -470,7 +380,7 @@ void RemPPGDetailed::draw(cv::Mat &frame) {
         p1 = Point(drawAreaTlX, drawAreaTlY + (vmax - powerSpectrum.at<double>(low, 0))*heightMult);
         for (int i = low + 1; i <= high; i++) {
             p2 = Point(drawAreaTlX + (i - low) * widthMult, drawAreaTlY + (vmax - powerSpectrum.at<double>(i, 0)) * heightMult);
-            line(frame, p1, p2, RED, 2);
+            line(frameRGB, p1, p2, RED, 2);
             p1 = p2;
         }
     }
@@ -481,11 +391,11 @@ void RemPPGDetailed::draw(cv::Mat &frame) {
     if (valid) {
         ss.precision(3);
         ss << meanBpm << " bpm";
-        putText(frame, ss.str(), Point(box.tl().x, box.tl().y - 10), cv::FONT_HERSHEY_PLAIN, 2, cv::RED, 2);
+        putText(frameRGB, ss.str(), Point(box.tl().x, box.tl().y - 10), cv::FONT_HERSHEY_PLAIN, 2, cv::RED, 2);
     }
     
     // Draw FPS text
     ss.str("");
     ss << fps << " fps";
-    putText(frame, ss.str(), Point(box.tl().x, box.br().y + 40), cv::FONT_HERSHEY_PLAIN, 2, cv::GREEN, 2);
+    putText(frameRGB, ss.str(), Point(box.tl().x, box.br().y + 40), cv::FONT_HERSHEY_PLAIN, 2, cv::GREEN, 2);
 }
