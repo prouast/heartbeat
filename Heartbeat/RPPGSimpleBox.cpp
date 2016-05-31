@@ -228,15 +228,15 @@ void RPPGSimpleBox::extractSignal_den_detr_mean() {
     
     // Denoise
     Mat signalDenoised;
-    denoiseFilter2(signal, signalDenoised, jumps);
+    denoise(signal, signalDenoised, jumps);
     
     // Detrend
     Mat signalDetrended;
-    detrendFilter(signalDenoised, signalDetrended, fps);
+    detrend(signalDenoised, signalDetrended, fps);
     
     // Moving average
     Mat signalMeaned;
-    meanFilter(signalDetrended, signalMeaned, 3, fps/3);
+    movingAverage(signalDetrended, signalMeaned, 3, fps/3);
     
     signalMeaned.copyTo(signal);
     

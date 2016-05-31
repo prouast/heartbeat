@@ -1,54 +1,54 @@
 //
-//  RPPGSimple.hpp
+//  RPPGMobile.hpp
 //  Heartbeat
 //
-//  Created by Philipp Rouast on 29/02/2016.
+//  Created by Philipp Rouast on 21/05/2016.
 //  Copyright © 2016 Philipp Roüast. All rights reserved.
 //
 
-#ifndef RPPGSimple_hpp
-#define RPPGSimple_hpp
+#ifndef RPPGMobile_hpp
+#define RPPGMobile_hpp
 
 #include <string>
 #include <stdio.h>
 #include <fstream>
 #include <opencv2/objdetect/objdetect.hpp>
 
-class RPPGSimple {
+class RPPGMobile {
     
 public:
     
     // Constructor
-    RPPGSimple();
+    RPPGMobile() {;}
     
     // Load Settings
     bool load(const int width, const int height,
               const double timeBase,
               const int samplingFrequency, const int rescanInterval,
               const std::string &logFileName,
-              const std::string &faceClassifierFilename,
-              const std::string &leftEyeClassifierFilename,
-              const std::string &rightEyeClassifierFilename,
+              const std::string &classifierFilename,
               const bool log, const bool draw);
     
+    void processFrame(cv::Mat &frameRGB, cv::Mat &frameGray, int64_t time);
+    
     void exit();
-    void processFrame(cv::Mat &frameRGB, cv::Mat &frameGray, long time);
+    
+    typedef std::vector<cv::Point2f> Contour2f;
     
 private:
     
     void detectFace(cv::Mat &frameRGB, cv::Mat &frameGray);
     void setNearestBox(std::vector<cv::Rect> boxes);
-    void detectEyes(cv::Mat &frameRGB);
-    void updateMask();
+    void detectCorners(cv::Mat &frameGray);
+    void trackFace(cv::Mat &frameGray);
+    void updateMask(cv::Mat &frameGray);
+    void extractSignal();
     void extractSignal_den_detr_mean();
-    void extractSignal_den_band();
     void estimateHeartrate();
     void draw(cv::Mat &frameRGB);
-        
+    
     // The classifiers
-    cv::CascadeClassifier faceClassifier;
-    cv::CascadeClassifier leftEyeClassifier;
-    cv::CascadeClassifier rightEyeClassifier;
+    cv::CascadeClassifier classifier;
     
     // Settings
     cv::Size minFaceSize;
@@ -59,25 +59,36 @@ private:
     bool drawMode;
     
     // State variables
-    long time;
+    int64_t time;
     double fps;
-    double lastSamplingTime;
-    double lastScanTime;
-    long now;
-    bool valid;
-    bool updateFlag;
+    int64_t lastSamplingTime;
+    int64_t lastScanTime;
+    int64_t now;
+    bool faceValid;
+    bool rescanFlag;
+    bool mode[3] = {false, true, false};
+    
+    // Tracking
+    cv::Mat lastFrameGray;
+    Contour2f corners;
     
     // Mask
     cv::Rect box;
-    cv::Rect rightEye;
-    cv::Rect leftEye;
     cv::Mat mask;
+    cv::Rect roi;
     
-    // Signal
-    cv::Mat1d g;
+    // Raw signal
+    cv::Mat1d s;
     cv::Mat1d t;
-    cv::Mat1d jumps;
-    cv::Mat1d signal;
+    cv::Mat1b re;
+    
+    // Signal validation
+    cv::Mat1b v;
+    bool s_flags[3] = {false, false, false};
+    
+    // Valid signal and estimation
+    cv::Mat1d s_v;
+    cv::Mat1d s_f;
     cv::Mat1d bpms;
     cv::Mat1d powerSpectrum;
     double meanBpm;
@@ -90,4 +101,4 @@ private:
     std::string logfilepath;
 };
 
-#endif /* RPPGSimple_hpp */
+#endif /* RPPGMobile_hpp */

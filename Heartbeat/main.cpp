@@ -11,8 +11,7 @@
 #include <opencv2/videoio/videoio.hpp>
 #include "opencv2/highgui/highgui.hpp"
 #include <opencv2/imgproc/imgproc.hpp>
-#include "RPPGSimple.hpp"
-#include "RPPGSimpleBox.hpp"
+#include "RPPGMobile.hpp"
 #include "RPPGDetailed.hpp"
 #include "opencv.hpp"
 #include "FFmpegDecoder.hpp"
@@ -26,6 +25,7 @@ using namespace cv;
 #define RIGHT_EYE_CLASSIFIER_PATH "/Users/prouast/Developer/Xcode/Heartbeat/res/haarcascade_righteye_2splits.xml"
 #define POSE_ESTIMATOR_PATH "/Users/prouast/Developer/Xcode/Heartbeat/res/shape_predictor_68_face_landmarks.dat"
 #define LOG_FILE_PATH "/Users/prouast/Developer/R/Heartrate/Data/"
+
 
 int main(int argc, const char * argv[]) {
     
@@ -68,31 +68,19 @@ int main(int argc, const char * argv[]) {
             return false;
         }
         
-        // Set up controller for simple algorithm
-        RPPGSimple simple = RPPGSimple(WIDTH, HEIGHT,
-                                       TIME_BASE, 1, 1,
-                                       LOG_FILE_NAME,
-                                       FACE_CLASSIFIER_PATH,
-                                       LEFT_EYE_CLASSIFIER_PATH,
-                                       RIGHT_EYE_CLASSIFIER_PATH,
-                                       true, true);
-        
-        // Set up controller for simple box algorithm
-        RPPGSimpleBox simpleBox = RPPGSimpleBox();
-        simpleBox.load(WIDTH, HEIGHT, TIME_BASE,
-                       FACE_CLASSIFIER_PATH,
-                       LEFT_EYE_CLASSIFIER_PATH,
-                       RIGHT_EYE_CLASSIFIER_PATH,
-                       LOG_FILE_NAME);
+        RPPGMobile mobile = RPPGMobile();
+        mobile.load(WIDTH, HEIGHT, TIME_BASE, 1, 1,
+                    LOG_FILE_NAME, FACE_CLASSIFIER_PATH,
+                    true, true);
         
         // Set up controller for detailed algorithm
-        RPPGDetailed detailed = RPPGDetailed();
-        detailed.load(WIDTH, HEIGHT, TIME_BASE,
-                      FACE_CLASSIFIER_PATH,
-                      LEFT_EYE_CLASSIFIER_PATH,
-                      RIGHT_EYE_CLASSIFIER_PATH,
-                      POSE_ESTIMATOR_PATH,
-                      LOG_FILE_NAME);
+        //RPPGDetailed detailed = RPPGDetailed();
+        //detailed.load(WIDTH, HEIGHT, TIME_BASE,
+        //              FACE_CLASSIFIER_PATH,
+        //              LEFT_EYE_CLASSIFIER_PATH,
+        //              RIGHT_EYE_CLASSIFIER_PATH,
+        //              POSE_ESTIMATOR_PATH,
+        //              LOG_FILE_NAME);
         
         cout << "START ALGORITHM" << endl;
         
@@ -116,20 +104,16 @@ int main(int argc, const char * argv[]) {
                 cv::equalizeHist(grayFrame, grayFrame);
                 
                 double time = decoded->best_effort_timestamp;
-                Mat frame1;
-                frame.copyTo(frame1);
-                Mat frame2;
-                frame.copyTo(frame2);
+                //Mat frame1;
+                //frame.copyTo(frame1);
                 
                 cout << "TIMESTAMP: " << decoded->best_effort_timestamp << endl;
                 
-                simple.processFrame(frame, grayFrame, time);
-                simpleBox.processFrame(frame1, time);
-                detailed.processFrame(frame2, time);
+                mobile.processFrame(frame, grayFrame, time);
+                //detailed.processFrame(frame2, time);
                 
-                imshow("SIMPLE ALGORITHM", frame);
-                imshow("SIMPLE BOX ALGORITHM", frame1);
-                imshow("DETAILED ALGORITHM", frame2);
+                imshow("MOBILE ALGORITHM", frame);
+                //imshow("DETAILED ALGORITHM", frame2);
                 
                 if (waitKey(30) >= 0) break;
                 

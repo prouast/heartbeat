@@ -21,14 +21,14 @@ using namespace std;
 #define SIGNAL_SIZE 10
 #define SEC_PER_MIN 60
 
-RPPGSimple::RPPGSimple(const int width, const int height,
-                       const double timeBase,
-                       const int samplingFrequency, const int rescanInterval,
-                       const string &logFileName,
-                       const string &faceClassifierFilename,
-                       const string &leftEyeClassifierFilename,
-                       const string &rightEyeClassifierFilename,
-                       const bool log, const bool draw) {
+bool RPPGSimple::load(const int width, const int height,
+                      const double timeBase,
+                      const int samplingFrequency, const int rescanInterval,
+                      const string &logFileName,
+                      const string &faceClassifierFilename,
+                      const string &leftEyeClassifierFilename,
+                      const string &rightEyeClassifierFilename,
+                      const bool log, const bool draw) {
     
     this->minFaceSize = cv::Size(cv::min(width, height) * REL_MIN_FACE_SIZE, cv::min(width, height) * REL_MIN_FACE_SIZE);
     this->rescanInterval = rescanInterval;
@@ -60,6 +60,8 @@ RPPGSimple::RPPGSimple(const int width, const int height,
     path_3 << logfilepath << "_bpmDetailed.csv";
     logfileDetailed.open(path_3.str());
     logfileDetailed << "time;bpm\n";
+    
+    return true;
 }
 
 void RPPGSimple::exit() {
@@ -232,15 +234,15 @@ void RPPGSimple::extractSignal_den_detr_mean() {
 
     // Denoise
     Mat signalDenoised;
-    denoiseFilter2(signal, signalDenoised, jumps);
+    denoise(signal, signalDenoised, jumps);
     
     // Detrend
     Mat signalDetrended;
-    detrendFilter(signalDenoised, signalDetrended, fps);
+    detrend(signalDenoised, signalDetrended, fps);
     
     // Moving average
     Mat signalMeaned;
-    meanFilter(signalDetrended, signalMeaned, 3, fps/3);
+    movingAverage(signalDetrended, signalMeaned, 3, fps/3);
     signalMeaned.copyTo(signal);
     
     // Logging
