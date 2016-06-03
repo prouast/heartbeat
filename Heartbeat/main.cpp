@@ -12,7 +12,6 @@
 #include "opencv2/highgui/highgui.hpp"
 #include <opencv2/imgproc/imgproc.hpp>
 #include "RPPGMobile.hpp"
-#include "RPPGDetailed.hpp"
 #include "opencv.hpp"
 #include "FFmpegDecoder.hpp"
 #include "FFmpegEncoder.hpp"
@@ -71,16 +70,7 @@ int main(int argc, const char * argv[]) {
         RPPGMobile mobile = RPPGMobile();
         mobile.load(WIDTH, HEIGHT, TIME_BASE, 1, 1,
                     LOG_FILE_NAME, FACE_CLASSIFIER_PATH,
-                    true, true);
-        
-        // Set up controller for detailed algorithm
-        //RPPGDetailed detailed = RPPGDetailed();
-        //detailed.load(WIDTH, HEIGHT, TIME_BASE,
-        //              FACE_CLASSIFIER_PATH,
-        //              LEFT_EYE_CLASSIFIER_PATH,
-        //              RIGHT_EYE_CLASSIFIER_PATH,
-        //              POSE_ESTIMATOR_PATH,
-        //              LOG_FILE_NAME);
+                    false, true);
         
         cout << "START ALGORITHM" << endl;
         
@@ -104,16 +94,12 @@ int main(int argc, const char * argv[]) {
                 cv::equalizeHist(grayFrame, grayFrame);
                 
                 double time = decoded->best_effort_timestamp;
-                //Mat frame1;
-                //frame.copyTo(frame1);
                 
                 cout << "TIMESTAMP: " << decoded->best_effort_timestamp << endl;
                 
                 mobile.processFrame(frame, grayFrame, time);
-                //detailed.processFrame(frame2, time);
                 
                 imshow("MOBILE ALGORITHM", frame);
-                //imshow("DETAILED ALGORITHM", frame2);
                 
                 if (waitKey(30) >= 0) break;
                 
@@ -129,6 +115,64 @@ int main(int argc, const char * argv[]) {
     
     return 0;
 }
+
+/*
+int main(int argc, const char** argv) {
+    
+    VideoCapture cap(0);
+    if (!cap.isOpened()) {
+        return -1;
+    }
+    
+    // Configure logfile path
+    std::ostringstream filepath;
+    filepath << LOG_FILE_PATH << "Android_ffmpeg";
+    const string LOG_FILE_NAME = filepath.str();
+    
+    const int WIDTH  = cap.get(CV_CAP_PROP_FRAME_WIDTH);
+    const int HEIGHT = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
+    const double FPS = cap.get(CV_CAP_PROP_FPS);
+    const long MSEC = cap.get(CV_CAP_PROP_POS_MSEC);
+    const double TIME_BASE = 0.001;
+    cout << "SIZE: " << WIDTH << "x" << HEIGHT << endl;
+    cout << "FPS: " << FPS << endl;
+    cout << "MSEC: " << MSEC << endl;
+    
+    RPPGMobile mobile = RPPGMobile();
+    mobile.load(WIDTH, HEIGHT, TIME_BASE, 1, 1,
+                LOG_FILE_NAME, FACE_CLASSIFIER_PATH,
+                true, true);
+    
+    Mat frame;
+    int64_t begin = (cv::getTickCount()*1000.0)/cv::getTickFrequency();
+    
+    // Main loop
+    while (true) {
+        
+        cap.read(frame);
+        
+        int64_t now = (cv::getTickCount()*1000.0)/cv::getTickFrequency();
+        
+        // Generate grayframe
+        Mat grayFrame;
+        cv::cvtColor(frame, grayFrame, CV_BGR2GRAY);
+        cv::equalizeHist(grayFrame, grayFrame);
+        
+        if (frame.empty()) {
+            while (waitKey() != 27) {}
+            break;
+        }
+        
+        mobile.processFrame(frame, grayFrame, now);
+        
+        imshow("Hay", frame);
+        
+        if (waitKey(1) == 27) {
+            break;
+        }
+    }
+}
+
 
 /*
 int main(int argc, const char** argv) {

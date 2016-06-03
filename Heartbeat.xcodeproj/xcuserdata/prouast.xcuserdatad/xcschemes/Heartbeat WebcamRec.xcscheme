@@ -63,7 +63,7 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "/Users/prouast/Desktop/Testfiles/test4.mov"
+            argument = "/Users/prouast/Desktop/full_test/WebcamRec_iism-kd2-b06.mp4"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument

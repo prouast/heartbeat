@@ -42,10 +42,12 @@ private:
     void detectCorners(cv::Mat &frameGray);
     void trackFace(cv::Mat &frameGray);
     void updateMask(cv::Mat &frameGray);
+    void updateROI();
     void extractSignal();
     void extractSignal_den_detr_mean();
     void estimateHeartrate();
     void draw(cv::Mat &frameRGB);
+    void invalidateFace();
     
     // The classifiers
     cv::CascadeClassifier classifier;
@@ -74,7 +76,7 @@ private:
     
     // Mask
     cv::Rect box;
-    cv::Mat mask;
+    cv::Mat1b mask;
     cv::Rect roi;
     
     // Raw signal
@@ -82,12 +84,7 @@ private:
     cv::Mat1d t;
     cv::Mat1b re;
     
-    // Signal validation
-    cv::Mat1b v;
-    bool s_flags[3] = {false, false, false};
-    
-    // Valid signal and estimation
-    cv::Mat1d s_v;
+    // Estimation
     cv::Mat1d s_f;
     cv::Mat1d bpms;
     cv::Mat1d powerSpectrum;
