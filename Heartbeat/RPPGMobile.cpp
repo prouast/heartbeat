@@ -319,7 +319,7 @@ void RPPGMobile::extractSignal_xminay() {
     
     const int total = s.rows;
     const int low = (int)(total * LOW_BPM / SEC_PER_MIN / fps);
-    const int high = (int)(total * HIGH_BPM / SEC_PER_MIN / fps);
+    const int high = (int)(total * HIGH_BPM / SEC_PER_MIN / fps) + 1;
     
     // Bandpass
     Mat x_f = Mat(s.rows, s.cols, CV_32F);

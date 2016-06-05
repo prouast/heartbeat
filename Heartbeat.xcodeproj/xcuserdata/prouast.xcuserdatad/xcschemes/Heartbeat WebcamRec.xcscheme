@@ -64,7 +64,7 @@
       <CommandLineArguments>
          <CommandLineArgument
             argument = "-i /Users/prouast/Developer/R/Heartrate/Data/_fulltest/WebcamRec_iism-kd2-b06.mp4"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-s true"

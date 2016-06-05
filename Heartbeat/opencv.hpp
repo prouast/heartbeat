@@ -47,7 +47,6 @@ namespace cv {
     void butterworth_lowpass_filter(cv::Mat &filter, double cutoff, int n);
     void frequencyToTime(cv::InputArray _a, cv::OutputArray _b);
     void timeToFrequency(cv::InputArray _a, cv::OutputArray _b, bool magnitude);
-    void xminay(cv::InputArray _r, cv::InputArray _g, cv::InputArray _b, double low, double high, cv::OutputArray _s);
     
     /* LOGGING */
     

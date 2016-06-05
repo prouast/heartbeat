@@ -394,49 +394,6 @@ namespace cv {
         output.copyTo(_b);
     }
     
-    void xminay(InputArray _r, InputArray _g, InputArray _b, double low, double high, OutputArray _s) {
-        
-        // Retrieve Mats
-        Mat r = _r.getMat();
-        Mat g = _g.getMat();
-        Mat b = _b.getMat();
-        
-        // Normalize raw signals
-        Mat r_n = Mat(r.rows, r.cols, CV_32F);
-        Mat g_n = Mat(g.rows, g.cols, CV_32F);
-        Mat b_n = Mat(b.rows, b.cols, CV_32F);
-        normalization(r, r_n);
-        normalization(g, g_n);
-        normalization(b, b_n);
-        
-        // Calculate X_s signal
-        Mat x_s = Mat(r.rows, r.cols, CV_32F);
-        addWeighted(r_n, 3, g_n, -2, 0, x_s);
-        
-        // Calculate Y_s signal
-        Mat y_s = Mat(r.rows, r.cols, CV_32F);
-        addWeighted(r_n, 1.5, g_n, 1, 0, y_s);
-        addWeighted(y_s, 1, b_n, -1.5, 0, y_s);
-        
-        // Bandpass
-        Mat x_f = Mat(r.rows, r.cols, CV_32F);
-        bandpass(x_s, x_f, low, high);
-        Mat y_f = Mat(r.rows, r.cols, CV_32F);
-        bandpass(y_s, y_f, low, high);
-        
-        // Calculate alpha
-        Scalar mean_x_f;
-        Scalar stddev_x_f;
-        meanStdDev(x_f, mean_x_f, stddev_x_f);
-        Scalar mean_y_f;
-        Scalar stddev_y_f;
-        meanStdDev(y_f, mean_y_f, stddev_y_f);
-        double alpha = stddev_x_f.val[0]/stddev_y_f.val[0];
-        
-        // Calculate signal
-        addWeighted(x_f, 1, y_f, -alpha, 0, _s);
-    }
-    
     /* LOGGING */
     
     void printMagnitude(String title, Mat &powerSpectrum) {
