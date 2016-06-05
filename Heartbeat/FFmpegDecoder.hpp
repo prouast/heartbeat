@@ -58,6 +58,10 @@ class FFmpegDecoder {
         return videoStartTime;
     }
     
+    public: void FreeBuffer() {
+        av_free(buffer);
+    }
+    
     // open video stream.
     private: bool OpenVideo();
     
@@ -102,6 +106,10 @@ class FFmpegDecoder {
     
     // Height of image
     private: int height;
+    
+    // Buffer
+    private: uint8_t * buffer;
+    
 };
 
 #endif /* FFmpegDecoder_hpp */

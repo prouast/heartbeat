@@ -24,7 +24,7 @@ public:
     // Load Settings
     bool load(const int width, const int height,
               const double timeBase,
-              const int samplingFrequency, const int rescanInterval,
+              const double samplingFrequency, const double rescanInterval,
               const std::string &logFileName,
               const std::string &classifierFilename,
               const bool log, const bool draw);
@@ -43,7 +43,7 @@ private:
     void trackFace(cv::Mat &frameGray);
     void updateMask(cv::Mat &frameGray);
     void updateROI();
-    void extractSignal();
+    void extractSignal_xminay();
     void extractSignal_den_detr_mean();
     void estimateHeartrate();
     void draw(cv::Mat &frameRGB);
@@ -54,8 +54,8 @@ private:
     
     // Settings
     cv::Size minFaceSize;
-    double rescanInterval;
-    int samplingFrequency;
+    double rescanFrequency;
+    double samplingFrequency;
     double timeBase;
     bool logMode;
     bool drawMode;
@@ -87,10 +87,14 @@ private:
     // Estimation
     cv::Mat1d s_f;
     cv::Mat1d bpms;
+    cv::Mat1d bpms_ws;
     cv::Mat1d powerSpectrum;
     double meanBpm;
     double minBpm;
     double maxBpm;
+    double meanBpm_ws;
+    double minBpm_ws;
+    double maxBpm_ws;
     
     // Logfiles
     std::ofstream logfile;

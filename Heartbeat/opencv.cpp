@@ -180,6 +180,61 @@ namespace cv {
         a_.copyTo(_b);
     }
     
+    double weightedMeanIndex(InputArray _a, int low, int high) {
+        
+        double result;
+        
+        // Create input mats
+        Mat a = _a.getMat();
+        Mat m = Mat::zeros(a.size(), CV_8U);
+        m.rowRange(min(low, a.rows), min(high, a.rows) + 1).setTo(ONE);
+        
+        CV_Assert(a.type() == CV_64F);
+        
+        // Normalize the input
+        normalize(a, a, 1, 0, NORM_L1, -1, m);
+        
+        for (int i = low; i <= high; i++) {
+            result += a.at<double>(0, i) * i;
+        }
+        
+        return result;
+    }
+    
+    double weightedSquaresMeanIndex(InputArray _a, int low, int high) {
+        
+        double result;
+        
+        // Create input mats
+        Mat a = _a.getMat().clone();
+        Mat m = Mat::zeros(a.size(), CV_8U);
+        m.rowRange(min(low, a.rows), min(high, a.rows) + 1).setTo(ONE);
+        
+        CV_Assert(a.type() == CV_64F);
+        
+        // Normalize the input range
+        normalize(a, a, 1, 0, NORM_L1, -1, m);
+        
+        //printMat<double>("a", a);
+        
+        // Quadruple the input array
+        multiply(a, a, a);
+        multiply(a, a, a);
+        
+        //printMat<double>("a", a);
+        
+        // Normalize the adjusted input range
+        normalize(a, a, 1, 0, NORM_L1, -1, m);
+        
+        //printMat<double>("a", a);
+        
+        for (int i = low; i <= high; i++) {
+            result += a.at<double>(0, i) * i;
+        }
+        
+        return result;
+    }
+    
     /* FILTERS */
     
     // Subtract mean and divide by standard deviation
@@ -187,8 +242,10 @@ namespace cv {
         _a.getMat().copyTo(_b);
         Mat b = _b.getMat();
         Scalar mean, stdDev;
-        meanStdDev(b, mean, stdDev);
-        b = (b - mean[0]) / stdDev[0];
+        for (int i = 0; i < b.cols; i++) {
+            meanStdDev(b.col(i), mean, stdDev);
+            b.col(i) = (b.col(i) - mean[0]) / stdDev[0];
+        }
     }
     
     // Eliminate jumps
@@ -208,9 +265,11 @@ namespace cv {
         
         for (int i = 0; i < jumps.rows; i++) {
             if (jumps.at<bool>(i, 0)) {
-                Mat mask = Mat::zeros(a.col(0).size(), CV_8U);
+                Mat mask = Mat::zeros(a.size(), CV_8U);
                 mask.rowRange(i, mask.rows).setTo(ONE);
-                add(a, Scalar(-diff.at<double>(i-1, 0)), a, mask);
+                for (int j = 0; j < a.cols; j++) {
+                    add(a.col(j), -diff.at<double>(i-1, j), a.col(j), mask.col(j));
+                }
             }
         }
         

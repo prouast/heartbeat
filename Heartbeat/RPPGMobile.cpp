@@ -19,32 +19,30 @@ using namespace std;
 #define LOW_BPM 42
 #define HIGH_BPM 240
 #define REL_MIN_FACE_SIZE 0.2
-#define MIN_SIGNAL_SIZE 6
-#define MAX_SIGNAL_SIZE 12
+#define MIN_SIGNAL_SIZE 4
+#define MAX_SIGNAL_SIZE 10
 #define SEC_PER_MIN 60
 
-#define MAX_CORNERS 20
-#define MIN_CORNERS 10
+#define MAX_CORNERS 10
+#define MIN_CORNERS 5
 #define QUALITY_LEVEL 0.01
-#define MIN_DISTANCE 10
-
-// CV_8U for masks
-// CV_32F for powerspectrum
+#define MIN_DISTANCE 20
 
 bool RPPGMobile::load(const int width, const int height,
                       const double timeBase,
-                      const int samplingFrequency, const int rescanInterval,
+                      const double samplingFrequency, const double rescanFrequency,
                       const string &logFileName,
                       const string &classifierFilename,
                       const bool log, const bool draw) {
     
     this->minFaceSize = cv::Size(cv::min(width, height) * REL_MIN_FACE_SIZE, cv::min(width, height) * REL_MIN_FACE_SIZE);
-    this->rescanInterval = rescanInterval;
+    this->rescanFrequency = rescanFrequency;
     this->samplingFrequency = samplingFrequency;
     this->timeBase = timeBase;
     this->logMode = log;
     this->drawMode = draw;
     this->rescanFlag = false;
+    this->lastSamplingTime = 0;
 
     // Load classifiers
     classifier.load(classifierFilename);
@@ -58,14 +56,16 @@ bool RPPGMobile::load(const int width, const int height,
     std::ostringstream path_2;
     path_2 << logfilepath << "_bpm.csv";
     logfile.open(path_2.str());
-    logfile << "time;mean;min;max\n";
+    logfile << "time;mean;min;max;mean_ws;min_ws;max_ws\n";
+    logfile.flush();
     
     // Logging bpm detailed
     std::ostringstream path_3;
-    path_3 << logfilepath << "_bpmDetailed.csv";
+    path_3 << logfilepath << "_bpmAll.csv";
     logfileDetailed.open(path_3.str());
-    logfileDetailed << "time;bpm\n";
-        
+    logfileDetailed << "time;bpm;bpm_ws\n";
+    logfileDetailed.flush();
+    
     return true;
 }
 
@@ -75,9 +75,7 @@ void RPPGMobile::exit() {
 }
 
 void RPPGMobile::processFrame(cv::Mat &frameRGB, cv::Mat &frameGray, int64_t time) {
-    
-    cout << "================= MOBILE =================" << endl;
-    
+        
     // Set time
     this->time = time;
     
@@ -88,7 +86,7 @@ void RPPGMobile::processFrame(cv::Mat &frameRGB, cv::Mat &frameGray, int64_t tim
         lastScanTime = time;
         detectFace(frameRGB, frameGray);
         
-    } else if ((time - lastScanTime) * timeBase >= rescanInterval) {
+    } else if ((time - lastScanTime) * timeBase >= 1/rescanFrequency) {
         
         cout << "Valid, but rescanning face" << endl;
         
@@ -111,7 +109,6 @@ void RPPGMobile::processFrame(cv::Mat &frameRGB, cv::Mat &frameGray, int64_t tim
         // Remove old values from raw signal buffer
         while (s.rows > fps * MAX_SIGNAL_SIZE) {
             push(s);
-            //push(v);
             push(t);
             push(re);
         }
@@ -125,12 +122,6 @@ void RPPGMobile::processFrame(cv::Mat &frameRGB, cv::Mat &frameGray, int64_t tim
         
         // Save rescan flag
         re.push_back<bool>(rescanFlag);
-        
-        // Validate signal
-        //v.push_back(Mat(1, 3, CV_8U, validate(s, v, s_flags)));
-        
-        // Crop signal to valid part at end
-        //crop(s, v, s_v, mode);
 
         // Update fps
         fps = getFps(t, timeBase);
@@ -139,13 +130,15 @@ void RPPGMobile::processFrame(cv::Mat &frameRGB, cv::Mat &frameGray, int64_t tim
         if (s.rows / fps >= MIN_SIGNAL_SIZE) {
             
             extractSignal_den_detr_mean();
-            //extractSignal();
+            //extractSignal_xminay();
             
             // PSD estimation
             estimateHeartrate();
         }
         
-        draw(frameRGB);
+        if (drawMode) {
+            draw(frameRGB);
+        }
     }
     
     rescanFlag = false;
@@ -198,14 +191,14 @@ void RPPGMobile::detectCorners(cv::Mat &frameGray) {
     // Define tracking region
     cv::Mat trackingRegion = cv::Mat::zeros(frameGray.rows, frameGray.cols, CV_8UC1);
     Point points[1][4];
-    points[0][0] = Point(box.tl().x + 0.25 * box.width,
+    points[0][0] = Point(box.tl().x + 0.22 * box.width,
                          box.tl().y + 0.21 * box.height);
-    points[0][1] = Point(box.tl().x + 0.75 * box.width,
+    points[0][1] = Point(box.tl().x + 0.78 * box.width,
                          box.tl().y + 0.21 * box.height);
-    points[0][2] = Point(box.tl().x + 0.30 * box.width,
-                         box.tl().y + 0.79 * box.height);
-    points[0][3] = Point(box.tl().x + 0.70 * box.width,
-                         box.tl().y + 0.79 * box.height);
+    points[0][2] = Point(box.tl().x + 0.70 * box.width,
+                         box.tl().y + 0.65 * box.height);
+    points[0][3] = Point(box.tl().x + 0.30 * box.width,
+                         box.tl().y + 0.65 * box.height);
     const Point *pts[1] = {points[0]};
     int npts[] = {4};
     cv::fillPoly(trackingRegion, pts, npts, 1, cv::WHITE);
@@ -269,7 +262,14 @@ void RPPGMobile::trackFace(cv::Mat &frameGray) {
         cv::transform(boxCoords, transformedBoxCoords, transform);
         box = Rect(transformedBoxCoords[0], transformedBoxCoords[1]);
         
-        // TODO update roi coords
+        // Update roi
+        Contour2f roiCoords;
+        roiCoords.push_back(roi.tl());
+        roiCoords.push_back(roi.br());
+        Contour2f transformedRoiCoords;
+        cv::transform(roiCoords, transformedRoiCoords, transform);
+        roi = Rect(transformedRoiCoords[0], transformedRoiCoords[1]);
+        
         updateMask(frameGray);
         
     } else {
@@ -298,42 +298,33 @@ void RPPGMobile::invalidateFace() {
     faceValid = false;
 }
 
-/*
-void RPPGMobile::extractSignal() {
+void RPPGMobile::extractSignal_xminay() {
     
     // Denoise signals
-    Mat r_den = Mat(r.rows, r.rows, CV_32F);
-    Mat g_den = Mat(g.rows, g.rows, CV_32F);
-    Mat b_den = Mat(b.rows, b.rows, CV_32F);
-    denoise(r, re, r_den);
-    denoise(g, re, g_den);
-    denoise(b, re, b_den);
+    Mat s_den = Mat(s.rows, s.cols, CV_32F);
+    denoise(s, re, s_den);
     
     // Normalize raw signals
-    Mat r_n = Mat(r_den.rows, r_den.cols, CV_32F);
-    Mat g_n = Mat(g_den.rows, g_den.cols, CV_32F);
-    Mat b_n = Mat(b_den.rows, b_den.cols, CV_32F);
-    normalization(r_den, r_n);
-    normalization(g_den, g_n);
-    normalization(b_den, b_n);
+    Mat s_n = Mat(s_den.rows, s_den.cols, CV_32F);
+    normalization(s_den, s_n);
     
     // Calculate X_s signal
-    Mat x_s = Mat(r.rows, r.cols, CV_32F);
-    addWeighted(r_n, 3, g_n, -2, 0, x_s);
+    Mat x_s = Mat(s.rows, s.cols, CV_32F);
+    addWeighted(s_n.col(0), 3, s_n.col(1), -2, 0, x_s);
     
     // Calculate Y_s signal
-    Mat y_s = Mat(r.rows, r.cols, CV_32F);
-    addWeighted(r_n, 1.5, g_n, 1, 0, y_s);
-    addWeighted(y_s, 1, b_n, -1.5, 0, y_s);
+    Mat y_s = Mat(s.rows, s.cols, CV_32F);
+    addWeighted(s_n.col(0), 1.5, s_n.col(1), 1, 0, y_s);
+    addWeighted(y_s, 1, s_n.col(2), -1.5, 0, y_s);
     
-    const int total = signal.rows;
+    const int total = s.rows;
     const int low = (int)(total * LOW_BPM / SEC_PER_MIN / fps);
     const int high = (int)(total * HIGH_BPM / SEC_PER_MIN / fps);
     
     // Bandpass
-    Mat x_f = Mat(r.rows, r.cols, CV_32F);
+    Mat x_f = Mat(s.rows, s.cols, CV_32F);
     bandpass(x_s, x_f, low, high);
-    Mat y_f = Mat(r.rows, r.cols, CV_32F);
+    Mat y_f = Mat(s.rows, s.cols, CV_32F);
     bandpass(y_s, y_f, low, high);
     
     // Calculate alpha
@@ -346,7 +337,7 @@ void RPPGMobile::extractSignal() {
     double alpha = stddev_x_f.val[0]/stddev_y_f.val[0];
     
     // Calculate signal
-    addWeighted(x_f, 1, y_f, -alpha, 0, signal);
+    addWeighted(x_f, 1, y_f, -alpha, 0, s_f);
     
     // Logging
     if (logMode) {
@@ -355,28 +346,31 @@ void RPPGMobile::extractSignal() {
         filepath << logfilepath << "_signal_" << time << ".csv";
         log.open(filepath.str());
         log << "r;g;b;r_den;g_den;b_den;x_s;y_s;x_f;y_f;signal\n";
-        for (int i = 0; i < g.rows; i++) {
-            log << r.at<double>(i, 0) << ";";
-            log << g.at<double>(i, 0) << ";";
-            log << b.at<double>(i, 0) << ";";
-            log << r_den.at<double>(i, 0) << ";";
-            log << g_den.at<double>(i, 0) << ";";
-            log << b_den.at<double>(i, 0) << ";";
+        for (int i = 0; i < s.rows; i++) {
+            log << s.at<double>(i, 0) << ";";
+            log << s.at<double>(i, 1) << ";";
+            log << s.at<double>(i, 2) << ";";
+            log << s_den.at<double>(i, 0) << ";";
+            log << s_den.at<double>(i, 1) << ";";
+            log << s_den.at<double>(i, 2) << ";";
             log << x_s.at<double>(i, 0) << ";";
             log << y_s.at<double>(i, 0) << ";";
             log << x_f.at<float>(i, 0) << ";";
             log << y_f.at<float>(i, 0) << ";";
-            log << signal.at<double>(i, 0) << "\n";
+            log << s_f.at<double>(i, 0) << "\n";
         }
         log.close();
     }
-} */
+}
 
 void RPPGMobile::extractSignal_den_detr_mean() {
     
     // Denoise
     Mat signalDenoised;
     denoise(s.col(1), re, signalDenoised);
+    
+    // Normalise
+    normalization(signalDenoised, signalDenoised);
     
     // Detrend
     Mat signalDetrended;
@@ -412,9 +406,9 @@ void RPPGMobile::estimateHeartrate() {
     // band mask
     const int total = s_f.rows;
     const int low = (int)(total * LOW_BPM / SEC_PER_MIN / fps);
-    const int high = (int)(total * HIGH_BPM / SEC_PER_MIN / fps);
+    const int high = (int)(total * HIGH_BPM / SEC_PER_MIN / fps) + 1;
     Mat bandMask = Mat::zeros(s_f.size(), CV_8U);
-    bandMask.rowRange(min(low, total), min(high, total)).setTo(ONE);
+    bandMask.rowRange(min(low, total), min(high, total) + 1).setTo(ONE);
     
     if (!powerSpectrum.empty()) {
         
@@ -427,7 +421,12 @@ void RPPGMobile::estimateHeartrate() {
         double bpm = pmax.y * fps / total * SEC_PER_MIN;
         bpms.push_back(bpm);
         
-        cout << "FPS=" << fps << " Vals=" << powerSpectrum.rows << " Peak=" << pmax.y << " BPM=" << bpm << endl;
+        // calculate BPM based on weighted squares power spectrum
+        double weightedSquares = weightedSquaresMeanIndex(powerSpectrum, low, high);
+        double bpm_ws = weightedSquares * fps / total * SEC_PER_MIN;
+        bpms_ws.push_back(bpm_ws);
+        
+        cout << "FPS=" << fps << " Vals=" << powerSpectrum.rows << " Peak=" << pmax.y << " BPM=" << bpm << " BPM_WS=" << bpm_ws << endl;
         
         // Logging
         if (logMode) {
@@ -446,28 +445,40 @@ void RPPGMobile::estimateHeartrate() {
         }
         
         logfileDetailed << time << ";";
-        logfileDetailed << bpm << "\n";
+        logfileDetailed << bpm << ";";
+        logfileDetailed << bpm_ws << "\n";
+        logfileDetailed.flush();
     }
     
-    if ((time - lastSamplingTime) * timeBase >= samplingFrequency) {
+    if ((time - lastSamplingTime) * timeBase >= 1/samplingFrequency) {
         lastSamplingTime = time;
         
         cv::sort(bpms, bpms, SORT_EVERY_COLUMN);
+        cv::sort(bpms_ws, bpms_ws, SORT_EVERY_COLUMN);
         
         // average calculated BPMs since last sampling time
         meanBpm = mean(bpms)(0);
         minBpm = bpms.at<double>(0, 0);
         maxBpm = bpms.at<double>(bpms.rows-1, 0);
         
-        std::cout << "meanBPM=" << meanBpm << std::endl;
+        meanBpm_ws = mean(bpms_ws)(0);
+        minBpm_ws = bpms_ws.at<double>(0, 0);
+        maxBpm_ws = bpms_ws.at<double>(bpms_ws.rows-1, 0);
+        
+        std::cout << "meanBPM=" << meanBpm << " minBpm=" << minBpm << " maxBpm=" << maxBpm << std::endl;
         
         // Logging
         logfile << time << ";";
         logfile << meanBpm << ";";
         logfile << minBpm << ";";
-        logfile << maxBpm << "\n";
+        logfile << maxBpm << ";";
+        logfile << meanBpm_ws << ";";
+        logfile << minBpm_ws << ";";
+        logfile << maxBpm_ws << "\n";
+        logfile.flush();
         
         bpms.pop_back(bpms.rows);
+        bpms_ws.pop_back(bpms_ws.rows);
     }
 }
 
@@ -508,9 +519,9 @@ void RPPGMobile::draw(cv::Mat &frameRGB) {
         // Draw powerSpectrum
         const int total = s_f.rows;
         const int low = (int)(total * LOW_BPM / SEC_PER_MIN / fps);
-        const int high = (int)(total * HIGH_BPM / SEC_PER_MIN / fps);
+        const int high = (int)(total * HIGH_BPM / SEC_PER_MIN / fps) + 1;
         Mat bandMask = Mat::zeros(s_f.size(), CV_8U);
-        bandMask.rowRange(min(low, total), min(high, total)).setTo(ONE);
+        bandMask.rowRange(min(low, total), min(high, total) + 1).setTo(ONE);
         minMaxLoc(powerSpectrum, &vmin, &vmax, &pmin, &pmax, bandMask);
         heightMult = displayHeight/(vmax - vmin);
         widthMult = displayWidth/(high - low);

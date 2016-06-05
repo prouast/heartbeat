@@ -63,11 +63,23 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "/Users/prouast/Desktop/full_test/WebcamRec_iism-kd2-b06.mp4"
+            argument = "-i /Users/prouast/Developer/R/Heartrate/Data/_fulltest/WebcamRec_iism-kd2-b06.mp4"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/Users/prouast/Desktop/out.mkv"
+            argument = "-s true"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-d false"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-r 1"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-f 2"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

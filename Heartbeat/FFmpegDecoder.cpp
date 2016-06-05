@@ -72,8 +72,9 @@ AVFrame * FFmpegDecoder::GetNextFrame() {
     if (videoStreamIndex != -1) {
         
         int frameFinished;
-        AVFrame *pVideoYuv = av_frame_alloc();
+        
         AVPacket packet;
+        av_init_packet(&packet);
         
         if (isOpen) {
             
@@ -81,6 +82,8 @@ AVFrame * FFmpegDecoder::GetNextFrame() {
             while (av_read_frame(pFormatCtx, &packet) >= 0) {
                 
                 int64_t pts = 0;
+                
+                AVFrame *pVideoYuv = av_frame_alloc();
                 
                 // Decode video frame
                 avcodec_decode_video2(pVideoCodecCtx, pVideoYuv, &frameFinished, &packet);
@@ -93,15 +96,13 @@ AVFrame * FFmpegDecoder::GetNextFrame() {
                 
                 if (frameFinished) {
                     res = GetRGBAFrame(pVideoYuv);
+                    av_free(pVideoYuv);
                     av_frame_set_best_effort_timestamp(res, pts);
                     break;
                 }
                 
-                av_packet_unref(&packet);
-                packet = AVPacket();
+                av_free_packet(&packet);
             }
-            
-            av_free(pVideoYuv);
         }
     }
     
@@ -110,17 +111,18 @@ AVFrame * FFmpegDecoder::GetNextFrame() {
 
 AVFrame * FFmpegDecoder::GetRGBAFrame(AVFrame *pFrameYuv) {
     
-    AVFrame * frame = NULL;
+    AVFrame *frame = av_frame_alloc();
     
     int width = pVideoCodecCtx->width;
     int height = pVideoCodecCtx->height;
-    int bufferImgSize = avpicture_get_size(AV_PIX_FMT_BGR24, width, height);
     
-    frame = av_frame_alloc();
-    uint8_t * buffer = (uint8_t*)av_mallocz(bufferImgSize);
+    int bufferImgSize = avpicture_get_size(AV_PIX_FMT_BGR24, width, height);
+    buffer = (uint8_t*)av_malloc(bufferImgSize);
+    
     if (frame) {
         
         avpicture_fill((AVPicture*)frame, buffer, AV_PIX_FMT_BGR24, width, height);
+        
         frame->width  = width;
         frame->height = height;
         
