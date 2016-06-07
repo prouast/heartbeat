@@ -48,6 +48,7 @@ private:
     void estimateHeartrate();
     void draw(cv::Mat &frameRGB);
     void invalidateFace();
+    void log();
     
     // The classifiers
     cv::CascadeClassifier classifier;
@@ -89,6 +90,8 @@ private:
     cv::Mat1d bpms;
     cv::Mat1d bpms_ws;
     cv::Mat1d powerSpectrum;
+    double bpm = 0.0;
+    double bpm_ws = 0.0;
     double meanBpm;
     double minBpm;
     double maxBpm;

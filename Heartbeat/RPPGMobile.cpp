@@ -56,14 +56,14 @@ bool RPPGMobile::load(const int width, const int height,
     std::ostringstream path_2;
     path_2 << logfilepath << "_bpm.csv";
     logfile.open(path_2.str());
-    logfile << "time;mean;min;max;mean_ws;min_ws;max_ws\n";
+    logfile << "time;face_valid;mean;min;max;mean_ws;min_ws;max_ws\n";
     logfile.flush();
     
     // Logging bpm detailed
     std::ostringstream path_3;
     path_3 << logfilepath << "_bpmAll.csv";
     logfileDetailed.open(path_3.str());
-    logfileDetailed << "time;bpm;bpm_ws\n";
+    logfileDetailed << "time;face_valid;bpm;bpm_ws\n";
     logfileDetailed.flush();
     
     return true;
@@ -140,6 +140,8 @@ void RPPGMobile::processFrame(cv::Mat &frameRGB, cv::Mat &frameGray, int64_t tim
             draw(frameRGB);
         }
     }
+    
+    log();
     
     rescanFlag = false;
     
@@ -418,12 +420,12 @@ void RPPGMobile::estimateHeartrate() {
         minMaxLoc(powerSpectrum, &min, &max, &pmin, &pmax, bandMask);
         
         // calculate BPM
-        double bpm = pmax.y * fps / total * SEC_PER_MIN;
+        bpm = pmax.y * fps / total * SEC_PER_MIN;
         bpms.push_back(bpm);
         
         // calculate BPM based on weighted squares power spectrum
         double weightedSquares = weightedSquaresMeanIndex(powerSpectrum, low, high);
-        double bpm_ws = weightedSquares * fps / total * SEC_PER_MIN;
+        bpm_ws = weightedSquares * fps / total * SEC_PER_MIN;
         bpms_ws.push_back(bpm_ws);
         
         cout << "FPS=" << fps << " Vals=" << powerSpectrum.rows << " Peak=" << pmax.y << " BPM=" << bpm << " BPM_WS=" << bpm_ws << endl;
@@ -443,11 +445,6 @@ void RPPGMobile::estimateHeartrate() {
             }
             log.close();
         }
-        
-        logfileDetailed << time << ";";
-        logfileDetailed << bpm << ";";
-        logfileDetailed << bpm_ws << "\n";
-        logfileDetailed.flush();
     }
     
     if ((time - lastSamplingTime) * timeBase >= 1/samplingFrequency) {
@@ -466,9 +463,17 @@ void RPPGMobile::estimateHeartrate() {
         maxBpm_ws = bpms_ws.at<double>(bpms_ws.rows-1, 0);
         
         std::cout << "meanBPM=" << meanBpm << " minBpm=" << minBpm << " maxBpm=" << maxBpm << std::endl;
-        
-        // Logging
+
+        bpms.pop_back(bpms.rows);
+        bpms_ws.pop_back(bpms_ws.rows);
+    }
+}
+
+void RPPGMobile::log() {
+    
+    if (lastSamplingTime == time || lastSamplingTime == 0) {
         logfile << time << ";";
+        logfile << faceValid << ";";
         logfile << meanBpm << ";";
         logfile << minBpm << ";";
         logfile << maxBpm << ";";
@@ -476,10 +481,13 @@ void RPPGMobile::estimateHeartrate() {
         logfile << minBpm_ws << ";";
         logfile << maxBpm_ws << "\n";
         logfile.flush();
-        
-        bpms.pop_back(bpms.rows);
-        bpms_ws.pop_back(bpms_ws.rows);
     }
+    
+    logfileDetailed << time << ";";
+    logfileDetailed << faceValid << ";";
+    logfileDetailed << bpm << ";";
+    logfileDetailed << bpm_ws << "\n";
+    logfileDetailed.flush();
 }
 
 void RPPGMobile::draw(cv::Mat &frameRGB) {

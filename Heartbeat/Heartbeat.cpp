@@ -187,7 +187,7 @@ int main(int argc, char * argv[]) {
                     
                     double time = decoded->best_effort_timestamp;
                     
-                    cout << "TIMESTAMP: " << decoded->best_effort_timestamp << endl;
+                    cout << "TIMESTAMP: " << time << endl;
                     
                     mobile.processFrame(frame, grayFrame, time);
                     
