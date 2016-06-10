@@ -11,9 +11,6 @@
 		FF09C09B1D04344A00BAB860 /* haarcascade_frontalface_alt.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = FF09C09A1D04324400BAB860 /* haarcascade_frontalface_alt.xml */; };
 		FF4D33E11CA6307C0041EABE /* FFmpegEncoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FF4D33DF1CA6307C0041EABE /* FFmpegEncoder.cpp */; };
 		FF8D594D1CF0CB64000CDB28 /* RPPGMobile.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FF8D594B1CF0CB64000CDB28 /* RPPGMobile.cpp */; };
-		FFBBA1881C8515CD007550E8 /* libopencv_core.3.0.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = FFBBA1851C8515CD007550E8 /* libopencv_core.3.0.0.dylib */; };
-		FFBBA1891C8515CD007550E8 /* libopencv_highgui.3.0.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = FFBBA1861C8515CD007550E8 /* libopencv_highgui.3.0.0.dylib */; };
-		FFBBA18A1C8515CD007550E8 /* libopencv_objdetect.3.0.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = FFBBA1871C8515CD007550E8 /* libopencv_objdetect.3.0.0.dylib */; };
 		FFDC35601C879BB000B04501 /* opencv.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FFDC355E1C879BB000B04501 /* opencv.cpp */; };
 		FFDFC5A11C891C4400C994E3 /* FFmpegDecoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FFDFC59F1C891C4400C994E3 /* FFmpegDecoder.cpp */; };
 /* End PBXBuildFile section */
@@ -40,9 +37,6 @@
 		FF8D594B1CF0CB64000CDB28 /* RPPGMobile.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RPPGMobile.cpp; sourceTree = "<group>"; };
 		FF8D594C1CF0CB64000CDB28 /* RPPGMobile.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = RPPGMobile.hpp; sourceTree = "<group>"; };
 		FFB64BAE1C83FA3E00B3766E /* Heartbeat */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Heartbeat; sourceTree = BUILT_PRODUCTS_DIR; };
-		FFBBA1851C8515CD007550E8 /* libopencv_core.3.0.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopencv_core.3.0.0.dylib; path = ../../../../../usr/local/lib/libopencv_core.3.0.0.dylib; sourceTree = "<group>"; };
-		FFBBA1861C8515CD007550E8 /* libopencv_highgui.3.0.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopencv_highgui.3.0.0.dylib; path = ../../../../../usr/local/lib/libopencv_highgui.3.0.0.dylib; sourceTree = "<group>"; };
-		FFBBA1871C8515CD007550E8 /* libopencv_objdetect.3.0.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopencv_objdetect.3.0.0.dylib; path = ../../../../../usr/local/lib/libopencv_objdetect.3.0.0.dylib; sourceTree = "<group>"; };
 		FFDC355E1C879BB000B04501 /* opencv.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = opencv.cpp; sourceTree = "<group>"; };
 		FFDC355F1C879BB000B04501 /* opencv.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = opencv.hpp; sourceTree = "<group>"; };
 		FFDFC59F1C891C4400C994E3 /* FFmpegDecoder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FFmpegDecoder.cpp; sourceTree = "<group>"; };
@@ -54,9 +48,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FFBBA18A1C8515CD007550E8 /* libopencv_objdetect.3.0.0.dylib in Frameworks */,
-				FFBBA1891C8515CD007550E8 /* libopencv_highgui.3.0.0.dylib in Frameworks */,
-				FFBBA1881C8515CD007550E8 /* libopencv_core.3.0.0.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -101,9 +92,6 @@
 		FFFFF0921C841225007B4A79 /* Libraries */ = {
 			isa = PBXGroup;
 			children = (
-				FFBBA1851C8515CD007550E8 /* libopencv_core.3.0.0.dylib */,
-				FFBBA1861C8515CD007550E8 /* libopencv_highgui.3.0.0.dylib */,
-				FFBBA1871C8515CD007550E8 /* libopencv_objdetect.3.0.0.dylib */,
 			);
 			name = Libraries;
 			sourceTree = "<group>";
@@ -220,7 +208,10 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = /usr/local/include;
-				LIBRARY_SEARCH_PATHS = /usr/local/lib;
+				LIBRARY_SEARCH_PATHS = (
+					"/usr/local/Cellar/opencv3/**",
+					/usr/local/lib,
+				);
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -259,7 +250,10 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = /usr/local/include;
-				LIBRARY_SEARCH_PATHS = /usr/local/lib;
+				LIBRARY_SEARCH_PATHS = (
+					"/usr/local/Cellar/opencv3/**",
+					/usr/local/lib,
+				);
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = macosx;

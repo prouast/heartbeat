@@ -23,8 +23,8 @@ using namespace std;
 #define MAX_SIGNAL_SIZE 10
 #define SEC_PER_MIN 60
 
-#define MAX_CORNERS 10
-#define MIN_CORNERS 5
+#define MAX_CORNERS 20
+#define MIN_CORNERS 10
 #define QUALITY_LEVEL 0.01
 #define MIN_DISTANCE 20
 
