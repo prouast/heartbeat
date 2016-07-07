@@ -9,7 +9,7 @@
 #include "opencv.hpp"
 #include <limits>
 
-#include "opencv2/highgui/highgui.hpp"
+#include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
 using namespace std;
@@ -263,7 +263,7 @@ namespace cv {
         Mat diff;
         subtract(a.rowRange(1, a.rows), a.rowRange(0, a.rows-1), diff);
         
-        for (int i = 0; i < jumps.rows; i++) {
+        for (int i = 1; i < jumps.rows; i++) {
             if (jumps.at<bool>(i, 0)) {
                 Mat mask = Mat::zeros(a.size(), CV_8U);
                 mask.rowRange(i, mask.rows).setTo(ONE);
@@ -279,18 +279,25 @@ namespace cv {
     // Advanced detrending filter based on smoothness priors approach (High pass equivalent)
     void detrend(InputArray _a, OutputArray _b, int lambda) {
         
-        Mat a = _a.total() == (size_t)_a.size().height ? _a.getMat() : _a.getMat().t();
-        if (a.total() < 3) {
+        Mat a = _a.getMat();
+        CV_Assert(a.type() == CV_64F);
+        
+        // Number of rows
+        int rows = a.rows;
+        
+        if (rows < 3) {
             a.copyTo(_b);
         } else {
-            int t = (int)a.total();
-            Mat i = Mat::eye(t, t, a.type());
+            // Construct I
+            Mat i = Mat::eye(rows, rows, a.type());
+            // Construct D2
             Mat d = Mat(Matx<double,1,3>(1, -2, 1));
-            Mat d2Aux = Mat::ones(t-2, 1, a.type()) * d;
-            Mat d2 = Mat::zeros(t-2, t, a.type());
+            Mat d2Aux = Mat::ones(rows-2, 1, a.type()) * d;
+            Mat d2 = Mat::zeros(rows-2, rows, a.type());
             for (int k = 0; k < 3; k++) {
                 d2Aux.col(k).copyTo(d2.diag(k));
             }
+            // Calculate b = (I - (I + λ^2 * D2^t*D2)^-1) * a
             Mat b = (i - (i + lambda * lambda * d2.t() * d2).inv()) * a;
             b.copyTo(_b);
         }
@@ -298,6 +305,10 @@ namespace cv {
     
     // Moving average filter (low pass equivalent)
     void movingAverage(InputArray _a, OutputArray _b, int n, int s) {
+        
+        //printMat<double>("a", _a);
+        //std::cout << "n=" << n << " s=" << s << std::endl;
+        
         _a.getMat().copyTo(_b);
         Mat b = _b.getMat();
         for (size_t i = 0; i < n; i++) {
@@ -389,9 +400,54 @@ namespace cv {
         // Split into planes; plane 0 is output
         Mat outputPlanes[2];
         split(a, outputPlanes);
-        Mat output;
+        Mat output = Mat(a.rows, 1, a.type());
         normalize(outputPlanes[0], output, 0, 1, CV_MINMAX);
         output.copyTo(_b);
+    }
+    
+    void pcaComponent(cv::InputArray _a, cv::OutputArray _b, int low, int high) {
+        
+        Mat a = _a.getMat();
+        CV_Assert(a.type() == CV_64F);
+        
+        // Perform PCA
+        cv::PCA pca(a, cv::Mat(), CV_PCA_DATA_AS_ROW);
+        
+        // Calculate PCA components
+        cv::Mat pc = a * pca.eigenvectors.t();
+        
+        // Band mask
+        const int total = a.rows;
+        Mat bandMask = Mat::zeros(a.rows, 1, CV_8U);
+        bandMask.rowRange(min(low, total), min(high, total) + 1).setTo(ONE);
+        
+        // Identify most distinct
+        std::vector<double> vals;
+        for (int i = 0; i < pc.cols; i++) {
+            cv::Mat magnitude = Mat(pc.rows, 1, CV_32F);
+            // Calculate spectral magnitudes
+            cv::timeToFrequency(pc.col(i), magnitude, true);
+            // Normalize
+            //printMat<float>("magnitude1", magnitude);
+            cv::normalize(magnitude, magnitude, 1, 0, NORM_L1, -1, bandMask);
+            //printMat<float>("magnitude2", magnitude);
+            // Grab index of max
+            double min, max;
+            Point pmin, pmax;
+            cv::minMaxLoc(magnitude, &min, &max, &pmin, &pmax, bandMask);
+            vals.push_back(max);
+            
+        }
+        
+        // Select most distinct
+        int idx[2];
+        cv::minMaxIdx(vals, 0, 0, 0, &idx[0]);
+        if (idx[0] == -1) {
+            pc.col(1).copyTo(_b);
+        } else {
+            //pc.col(1).copyTo(_b);
+            pc.col(idx[1]).copyTo(_b);
+        }
     }
     
     /* LOGGING */

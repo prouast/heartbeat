@@ -16,6 +16,8 @@
 #include <string>
 #include <algorithm>
 
+#include "RPPG.hpp"
+
 using namespace std;
 
 class Heartbeat {

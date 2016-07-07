@@ -10,15 +10,18 @@
 
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/videoio/videoio.hpp>
-#include "opencv2/highgui/highgui.hpp"
+#include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-#include "RPPGMobile.hpp"
 #include "opencv.hpp"
 #include "FFmpegDecoder.hpp"
 #include "FFmpegEncoder.hpp"
 
+#define DEFAULT_ALGORITHM "g"
 #define DEFAULT_RESCAN_FREQUENCY 1
 #define DEFAULT_SAMPLING_FREQUENCY 1
+#define DEFAULT_MIN_SIGNAL_SIZE 5
+#define DEFAULT_MAX_SIGNAL_SIZE 5
+#define DEFAULT_DOWNSAMPLE 1 // x means only every xth frame is used
 
 using namespace cv;
 
@@ -77,13 +80,37 @@ bool to_bool(string s) {
     return result;
 }
 
+rPPGAlgorithm to_algorithm(string s) {
+    rPPGAlgorithm result;
+    if (s == "g0") result = g0;
+    else if (s == "g") result = g;
+    else if (s == "pca") result = pca;
+    else if (s == "xminay") result = xminay;
+    else {
+        std::cout << "Please specify valid algorithm (g0, g, pca, xminay)!" << std::endl;
+        exit(0);
+    }
+    return result;
+}
+
 int main(int argc, char * argv[]) {
     
     Heartbeat cmd_line(argc, argv, true);
     
-    string input = cmd_line.get_arg("-i"); // Filepath if mode is want offline mode
+    string input = cmd_line.get_arg("-i"); // Filepath for offline mode
     
-    // Reading rescanIntervl setting
+    // algorithm setting
+    rPPGAlgorithm algorithm;
+    string algorithmString = cmd_line.get_arg("-a");
+    if (algorithmString != "") {
+        algorithm = to_algorithm(algorithmString);
+    } else {
+        algorithm = to_algorithm(DEFAULT_ALGORITHM);
+    }
+    
+    cout << "Using algorithm " << algorithm << "." << endl;
+    
+    // rescanFrequency setting
     double rescanFrequency;
     string rescanFrequencyString = cmd_line.get_arg("-r");
     if (rescanFrequencyString != "") {
@@ -92,7 +119,7 @@ int main(int argc, char * argv[]) {
         rescanFrequency = DEFAULT_RESCAN_FREQUENCY;
     }
     
-    // Reading samplingFrequency setting
+    // samplingFrequency setting
     double samplingFrequency;
     string samplingFrequencyString = cmd_line.get_arg("-f").c_str();
     if (samplingFrequencyString != "") {
@@ -101,27 +128,59 @@ int main(int argc, char * argv[]) {
         samplingFrequency = DEFAULT_SAMPLING_FREQUENCY;
     }
     
-    // Reading show setting
-    bool show;
-    string showString = cmd_line.get_arg("-s");
-    if (showString != "") {
-        show = to_bool(showString);
+    // max signal size setting
+    int maxSignalSize;
+    string maxSignalSizeString = cmd_line.get_arg("-max");
+    if (maxSignalSizeString != "") {
+        maxSignalSize = atof(maxSignalSizeString.c_str());
     } else {
-        show = true;
+        maxSignalSize = DEFAULT_MAX_SIGNAL_SIZE;
+    }
+    
+    // min signal size setting
+    int minSignalSize;
+    string minSignalSizeString = cmd_line.get_arg("-min");
+    if (minSignalSizeString != "") {
+        minSignalSize = atof(minSignalSizeString.c_str());
+    } else {
+        minSignalSize = DEFAULT_MIN_SIGNAL_SIZE;
+    }
+    
+    if (minSignalSize > maxSignalSize) {
+        std::cout << "Max signal size must be greater or equal min signal size!" << std::endl;
+        exit(0);
+    }
+    
+    // Reading gui setting
+    bool gui;
+    string guiString = cmd_line.get_arg("-gui");
+    if (guiString != "") {
+        gui = to_bool(guiString);
+    } else {
+        gui = true;
     }
     
     // Reading log setting
     bool log;
-    string logString = cmd_line.get_arg("-d");
+    string logString = cmd_line.get_arg("-log");
     if (logString != "") {
         log = to_bool(logString);
     } else {
         log = false;
     }
     
-    const string FACE_CLASSIFIER_PATH = "haarcascade_frontalface_alt.xml";
+    // Reading downsample setting
+    int downsample;
+    string downsampleString = cmd_line.get_arg("-ds");
+    if (downsampleString != "") {
+        downsample = atof(downsampleString.c_str());
+    } else {
+        downsample = DEFAULT_DOWNSAMPLE;
+    }
     
-    std::ifstream test(FACE_CLASSIFIER_PATH);
+    const string CLASSIFIER_PATH = "haarcascade_frontalface_alt.xml";
+    
+    std::ifstream test(CLASSIFIER_PATH);
     if (!test) {
         std::cout << "Face classifier xml not found!" << std::endl;
         exit(0);
@@ -137,7 +196,7 @@ int main(int argc, char * argv[]) {
             cout << "Processing input file " << input << endl;
             
             // Strip file extension from input name
-            const string LOG_FILE_NAME = input.substr(0, input.find_last_of("."));
+            const string LOG_PATH = input.substr(0, input.find_last_of("."));
             
             // Load video information
             const int WIDTH = decoder.GetWidth();
@@ -159,11 +218,13 @@ int main(int argc, char * argv[]) {
                 return false;
             }
             
-            RPPGMobile mobile = RPPGMobile();
-            mobile.load(WIDTH, HEIGHT, TIME_BASE,
-                        samplingFrequency, rescanFrequency,
-                        LOG_FILE_NAME, FACE_CLASSIFIER_PATH,
-                        log, show);
+            RPPG rppg = RPPG();
+            rppg.load(algorithm,
+                      WIDTH, HEIGHT, TIME_BASE, downsample,
+                      samplingFrequency, rescanFrequency,
+                      minSignalSize, maxSignalSize,
+                      LOG_PATH, CLASSIFIER_PATH,
+                      log, gui);
             
             cout << "START ALGORITHM" << endl;
             
@@ -175,27 +236,35 @@ int main(int argc, char * argv[]) {
                 if (decoded) {
                     
                     // OpenCV frame
-                    cv::Mat frame(decoded->height,
-                                  decoded->width,
-                                  CV_8UC3,
-                                  decoded->data[0]);
+                    cv::Mat frameRGB(decoded->height,
+                                     decoded->width,
+                                     CV_8UC3,
+                                     decoded->data[0]);
                     
                     // Generate grayframe
-                    Mat grayFrame;
-                    cv::cvtColor(frame, grayFrame, CV_BGR2GRAY);
-                    cv::equalizeHist(grayFrame, grayFrame);
+                    Mat frameGray;
+                    cv::cvtColor(frameRGB, frameGray, CV_BGR2GRAY);
+                    cv::equalizeHist(frameGray, frameGray);
                     
                     double time = decoded->best_effort_timestamp;
                     
                     cout << "TIMESTAMP: " << time << endl;
                     
-                    mobile.processFrame(frame, grayFrame, time);
+                    if (i % downsample == 0) {
+                        
+                        rppg.processFrame(frameRGB, frameGray, time);
                     
-                    if (show) {
-                        imshow("MOBILE ALGORITHM", frame);
+                    } else {
+                        
+                        cout << "SKIPPING FRAME TO DOWNSAMPLE!" << endl;
+                    }
+                    
+                    if (gui) {
+                        imshow("MOBILE ALGORITHM", frameRGB);
                         if (waitKey(30) >= 0) break;
                     }
                     
+                    frameRGB.deallocate();
                     decoder.FreeBuffer();
                     
                     i++;
@@ -207,7 +276,6 @@ int main(int argc, char * argv[]) {
                 }
             }
             
-            //av_free(decoded);
             av_frame_free(&decoded);
             decoder.CloseFile();
             
@@ -228,7 +296,7 @@ int main(int argc, char * argv[]) {
         // Configure logfile path
         std::ostringstream filepath;
         filepath << "Live_ffmpeg";
-        const string LOG_FILE_NAME = filepath.str();
+        const string LOG_PATH = filepath.str();
         
         const int WIDTH  = cap.get(CV_CAP_PROP_FRAME_WIDTH);
         const int HEIGHT = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
@@ -239,40 +307,53 @@ int main(int argc, char * argv[]) {
         cout << "FPS: " << FPS << endl;
         cout << "MSEC: " << MSEC << endl;
         
-        RPPGMobile mobile = RPPGMobile();
-        mobile.load(WIDTH, HEIGHT, TIME_BASE,
-                    samplingFrequency, rescanFrequency,
-                    LOG_FILE_NAME, FACE_CLASSIFIER_PATH,
-                    log, show);
+        RPPG rppg = RPPG();
+        rppg.load(algorithm,
+                  WIDTH, HEIGHT, TIME_BASE, downsample,
+                  samplingFrequency, rescanFrequency,
+                  minSignalSize, maxSignalSize,
+                  LOG_PATH, CLASSIFIER_PATH,
+                  log, gui);
         
-        Mat frame;
+        Mat frameRGB;
+        
+        int i = 0;
         
         // Main loop
         while (true) {
             
-            cap.read(frame);
+            cap.read(frameRGB);
             
-            int64_t now = (cv::getTickCount()*1000.0)/cv::getTickFrequency();
+            if (i % downsample == 0) {
+                
+                int64_t time = (cv::getTickCount()*1000.0)/cv::getTickFrequency();
+                
+                // Generate grayframe
+                Mat frameGray;
+                cv::cvtColor(frameRGB, frameGray, CV_BGR2GRAY);
+                cv::equalizeHist(frameGray, frameGray);
+                
+                if (frameRGB.empty()) {
+                    while (waitKey() != 27) {}
+                    break;
+                }
+                
+                rppg.processFrame(frameRGB, frameGray, time);
+                
+                if (gui) {
+                    imshow("Live", frameRGB);
+                }
             
-            // Generate grayframe
-            Mat grayFrame;
-            cv::cvtColor(frame, grayFrame, CV_BGR2GRAY);
-            cv::equalizeHist(grayFrame, grayFrame);
+            } else {
+                
+                cout << "SKIPPING FRAME TO DOWNSAMPLE!" << endl;
+            }
             
-            if (frame.empty()) {
-                while (waitKey() != 27) {}
+            if (waitKey(30) == 27) {
                 break;
             }
             
-            mobile.processFrame(frame, grayFrame, now);
-            
-            if (show) {
-                imshow("Live", frame);
-            }
-            
-            if (waitKey(1) == 27) {
-                break;
-            }
+            i++;
         }
         
     }

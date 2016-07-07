@@ -63,15 +63,23 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "-i /Users/prouast/Developer/R/Heartrate/Data/_fulltest/WebcamRec_iism-kd2-b06.mp4"
+            argument = "-i /Users/prouast/Developer/R/Heartrate/Data/Session\ 2/WebcamRec_iism-kd2-b06.mp4"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-a g"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "-s true"
+            argument = "-gui true"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "-d false"
+            argument = "-ds 2"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-log false"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
@@ -79,7 +87,7 @@
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "-f 2"
+            argument = "-f 1"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

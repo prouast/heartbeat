@@ -74,12 +74,12 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "Heartbeat/opencv.cpp"
-            timestampString = "486825647.553081"
+            timestampString = "486852221.198361"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "183"
-            endingLineNumber = "183"
-            landmarkName = "weightedMeanIndex(InputArray _a, int low, int high)"
+            startingLineNumber = "234"
+            endingLineNumber = "234"
+            landmarkName = "weightedSquaresMeanIndex(InputArray _a, int low, int high)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -90,12 +90,12 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "Heartbeat/opencv.cpp"
-            timestampString = "486830170.685712"
+            timestampString = "489407004.349222"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "200"
-            endingLineNumber = "200"
-            landmarkName = "weightedMeanIndex(InputArray _a, int low, int high)"
+            startingLineNumber = "438"
+            endingLineNumber = "438"
+            landmarkName = "pcaComponent(cv::InputArray _a, cv::OutputArray _b, int low, int high)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -106,12 +106,12 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "Heartbeat/RPPGMobile.cpp"
-            timestampString = "487002602.052322"
+            timestampString = "489419099.065621"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "432"
-            endingLineNumber = "432"
-            landmarkName = "RPPGMobile::estimateHeartrate()"
+            startingLineNumber = "274"
+            endingLineNumber = "274"
+            landmarkName = "RPPGMobile::trackFace(cv::Mat &amp;frameGray)"
             landmarkType = "5">
          </BreakpointContent>
       </BreakpointProxy>
@@ -121,14 +121,14 @@
             shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
-            filePath = "Heartbeat/opencv.cpp"
-            timestampString = "486852221.198361"
+            filePath = "Heartbeat/RPPGMobile.cpp"
+            timestampString = "489416410.770842"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "213"
-            endingLineNumber = "213"
-            landmarkName = "weightedSquaresMeanIndex(InputArray _a, int low, int high)"
-            landmarkType = "7">
+            startingLineNumber = "79"
+            endingLineNumber = "79"
+            landmarkName = "RPPGMobile::processFrame(cv::Mat &amp;frameRGB, cv::Mat &amp;frameGray, int64_t time)"
+            landmarkType = "5">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -137,14 +137,14 @@
             shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
-            filePath = "Heartbeat/opencv.cpp"
-            timestampString = "486852221.198361"
+            filePath = "Heartbeat/RPPGMobile.cpp"
+            timestampString = "489419099.065621"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "234"
-            endingLineNumber = "234"
-            landmarkName = "weightedSquaresMeanIndex(InputArray _a, int low, int high)"
-            landmarkType = "7">
+            startingLineNumber = "291"
+            endingLineNumber = "291"
+            landmarkName = "RPPGMobile::updateMask(cv::Mat &amp;frameGray)"
+            landmarkType = "5">
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>

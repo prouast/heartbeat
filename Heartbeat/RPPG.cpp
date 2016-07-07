@@ -1,16 +1,18 @@
 //
-//  RPPGMobile.cpp
+//  RPPG.cpp
 //  Heartbeat
 //
-//  Created by Philipp Rouast on 21/05/2016.
+//  Created by Philipp Rouast on 7/07/2016.
 //  Copyright © 2016 Philipp Roüast. All rights reserved.
 //
 
-#include "RPPGMobile.hpp"
+#include "RPPG.hpp"
+
 #include <opencv2/imgproc/imgproc.hpp>
-#include "opencv2/highgui/highgui.hpp"
+#include <opencv2/highgui/highgui.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/video/video.hpp>
+
 #include "opencv.hpp"
 
 using namespace cv;
@@ -19,37 +21,37 @@ using namespace std;
 #define LOW_BPM 42
 #define HIGH_BPM 240
 #define REL_MIN_FACE_SIZE 0.2
-#define MIN_SIGNAL_SIZE 4
-#define MAX_SIGNAL_SIZE 10
 #define SEC_PER_MIN 60
-
-#define MAX_CORNERS 20
-#define MIN_CORNERS 10
+#define MAX_CORNERS 10
+#define MIN_CORNERS 5
 #define QUALITY_LEVEL 0.01
-#define MIN_DISTANCE 20
+#define MIN_DISTANCE 25
 
-bool RPPGMobile::load(const int width, const int height,
-                      const double timeBase,
-                      const double samplingFrequency, const double rescanFrequency,
-                      const string &logFileName,
-                      const string &classifierFilename,
-                      const bool log, const bool draw) {
+bool RPPG::load(const rPPGAlgorithm algorithm,
+                const int width, const int height, const double timeBase, const int downsample,
+                const double samplingFrequency, const double rescanFrequency,
+                const int minSignalSize, const int maxSignalSize,
+                const string &logPath, const string &classifierPath,
+                const bool log, const bool gui) {
     
-    this->minFaceSize = cv::Size(cv::min(width, height) * REL_MIN_FACE_SIZE, cv::min(width, height) * REL_MIN_FACE_SIZE);
+    this->algorithm = algorithm;
+    this->guiMode = gui;
+    this->lastSamplingTime = 0;
+    this->logMode = log;
+    this->minFaceSize = Size(min(width, height) * REL_MIN_FACE_SIZE, min(width, height) * REL_MIN_FACE_SIZE);
+    this->maxSignalSize = maxSignalSize;
+    this->minSignalSize = minSignalSize;
+    this->rescanFlag = false;
     this->rescanFrequency = rescanFrequency;
     this->samplingFrequency = samplingFrequency;
     this->timeBase = timeBase;
-    this->logMode = log;
-    this->drawMode = draw;
-    this->rescanFlag = false;
-    this->lastSamplingTime = 0;
-
+    
     // Load classifiers
-    classifier.load(classifierFilename);
+    classifier.load(classifierPath);
     
     // Setting up logfilepath
-    std::ostringstream path_1;
-    path_1 << logFileName << "_mobile";
+    ostringstream path_1;
+    path_1 << logPath << "_a=" << algorithm << "_min=" << minSignalSize << "_max=" << maxSignalSize << "_ds=" << downsample;
     this->logfilepath = path_1.str();
     
     // Logging bpm according to sampling frequency
@@ -69,13 +71,13 @@ bool RPPGMobile::load(const int width, const int height,
     return true;
 }
 
-void RPPGMobile::exit() {
+void RPPG::exit() {
     logfile.close();
     logfileDetailed.close();
 }
 
-void RPPGMobile::processFrame(cv::Mat &frameRGB, cv::Mat &frameGray, int64_t time) {
-        
+void RPPG::processFrame(Mat &frameRGB, Mat &frameGray, int64_t time) {
+    
     // Set time
     this->time = time;
     
@@ -107,7 +109,7 @@ void RPPGMobile::processFrame(cv::Mat &frameRGB, cv::Mat &frameGray, int64_t tim
         fps = getFps(t, timeBase);
         
         // Remove old values from raw signal buffer
-        while (s.rows > fps * MAX_SIGNAL_SIZE) {
+        while (s.rows > fps * maxSignalSize) {
             push(s);
             push(t);
             push(re);
@@ -122,38 +124,55 @@ void RPPGMobile::processFrame(cv::Mat &frameRGB, cv::Mat &frameGray, int64_t tim
         
         // Save rescan flag
         re.push_back<bool>(rescanFlag);
-
+        
         // Update fps
         fps = getFps(t, timeBase);
         
+        // Update band spectrum limits
+        low = (int)(s.rows * LOW_BPM / SEC_PER_MIN / fps);
+        high = (int)(s.rows * HIGH_BPM / SEC_PER_MIN / fps) + 1;
+        
         // If valid signal is large enough: estimate
-        if (s.rows / fps >= MIN_SIGNAL_SIZE) {
+        if (s.rows >= fps * minSignalSize) {
             
-            extractSignal_den_detr_mean();
-            //extractSignal_xminay();
+            // Filtering
+            switch (algorithm) {
+                case g0:
+                    extractSignal_g0();
+                    break;
+                case g:
+                    extractSignal_g();
+                    break;
+                case pca:
+                    extractSignal_pca();
+                    break;
+                case xminay:
+                    extractSignal_xminay();
+                    break;
+            }
             
-            // PSD estimation
+            // HR estimation
             estimateHeartrate();
         }
         
-        if (drawMode) {
+        if (guiMode) {
             draw(frameRGB);
         }
+        
+        log();
     }
-    
-    log();
     
     rescanFlag = false;
     
     frameGray.copyTo(lastFrameGray);
 }
 
-void RPPGMobile::detectFace(cv::Mat &frameRGB, cv::Mat &frameGray) {
+void RPPG::detectFace(Mat &frameRGB, Mat &frameGray) {
     
     cout << "Scanning for faces…" << endl;
     
     // Detect faces with Haar classifier
-    std::vector<cv::Rect> boxes;
+    vector<Rect> boxes;
     classifier.detectMultiScale(frameGray, boxes, 1.1, 2, CV_HAAR_SCALE_IMAGE, minFaceSize);
     
     if (boxes.size() > 0) {
@@ -173,9 +192,9 @@ void RPPGMobile::detectFace(cv::Mat &frameRGB, cv::Mat &frameGray) {
     }
 }
 
-void RPPGMobile::setNearestBox(std::vector<cv::Rect> boxes) {
+void RPPG::setNearestBox(vector<Rect> boxes) {
     int index = 0;
-    cv::Point p = box.tl() - boxes.at(0).tl();
+    Point p = box.tl() - boxes.at(0).tl();
     int min = p.x * p.x + p.y * p.y;
     for (int i = 1; i < boxes.size(); i++) {
         p = box.tl() - boxes.at(i).tl();
@@ -188,10 +207,10 @@ void RPPGMobile::setNearestBox(std::vector<cv::Rect> boxes) {
     box = boxes.at(index);
 }
 
-void RPPGMobile::detectCorners(cv::Mat &frameGray) {
+void RPPG::detectCorners(Mat &frameGray) {
     
     // Define tracking region
-    cv::Mat trackingRegion = cv::Mat::zeros(frameGray.rows, frameGray.cols, CV_8UC1);
+    Mat trackingRegion = Mat::zeros(frameGray.rows, frameGray.cols, CV_8UC1);
     Point points[1][4];
     points[0][0] = Point(box.tl().x + 0.22 * box.width,
                          box.tl().y + 0.21 * box.height);
@@ -203,7 +222,7 @@ void RPPGMobile::detectCorners(cv::Mat &frameGray) {
                          box.tl().y + 0.65 * box.height);
     const Point *pts[1] = {points[0]};
     int npts[] = {4};
-    cv::fillPoly(trackingRegion, pts, npts, 1, cv::WHITE);
+    fillPoly(trackingRegion, pts, npts, 1, WHITE);
     
     // Apply corner detection
     goodFeaturesToTrack(frameGray,
@@ -217,7 +236,7 @@ void RPPGMobile::detectCorners(cv::Mat &frameGray) {
                         0.04);
 }
 
-void RPPGMobile::trackFace(cv::Mat &frameGray) {
+void RPPG::trackFace(Mat &frameGray) {
     
     // Make sure enough corners are available
     if (corners.size() < MIN_CORNERS) {
@@ -226,25 +245,26 @@ void RPPGMobile::trackFace(cv::Mat &frameGray) {
     
     Contour2f corners_1;
     Contour2f corners_0;
-    std::vector<uchar> cornersFound_1;
-    std::vector<uchar> cornersFound_0;
-    cv::Mat err;
+    vector<uchar> cornersFound_1;
+    vector<uchar> cornersFound_0;
+    Mat err;
     
     // Track face features with Kanade-Lucas-Tomasi (KLT) algorithm
-    cv::calcOpticalFlowPyrLK(lastFrameGray, frameGray, corners, corners_1, cornersFound_1, err);
+    calcOpticalFlowPyrLK(lastFrameGray, frameGray, corners, corners_1, cornersFound_1, err);
+    
     // Backtrack once to make it more robust
-    cv::calcOpticalFlowPyrLK(frameGray, lastFrameGray, corners_1, corners_0, cornersFound_0, err);
+    calcOpticalFlowPyrLK(frameGray, lastFrameGray, corners_1, corners_0, cornersFound_0, err);
     
     // Exclude no-good corners
     Contour2f corners_1v;
     Contour2f corners_0v;
     for (size_t j = 0; j < corners.size(); j++) {
         if (cornersFound_1[j] && cornersFound_0[j]
-            && cv::norm(corners[j]-corners_0[j]) < 2) {
+            && norm(corners[j]-corners_0[j]) < 2) {
             corners_0v.push_back(corners_0[j]);
             corners_1v.push_back(corners_1[j]);
         } else {
-            std::cout << "Mis!" << std::endl;
+            cout << "Mis!" << std::endl;
         }
     }
     
@@ -275,59 +295,177 @@ void RPPGMobile::trackFace(cv::Mat &frameGray) {
         updateMask(frameGray);
         
     } else {
-        std::cout << "Tracking failed! Not enough corners left." << std::endl;
+        cout << "Tracking failed! Not enough corners left." << endl;
         invalidateFace();
     }
 }
 
-void RPPGMobile::updateROI() {
+void RPPG::updateROI() {
     this->roi = Rect(Point(box.tl().x + 0.3 * box.width, box.tl().y + 0.1 * box.height),
                      Point(box.tl().x + 0.7 * box.width, box.tl().y + 0.25 * box.height));
 }
 
-void RPPGMobile::updateMask(cv::Mat &frameGray) {
+void RPPG::updateMask(Mat &frameGray) {
     
     cout << "Update mask" << endl;
     
-    mask = cv::Mat::zeros(frameGray.rows, frameGray.cols, CV_8U);
+    mask = Mat::zeros(frameGray.rows, frameGray.cols, CV_8U);
     rectangle(mask, this->roi, WHITE, FILLED);
 }
 
-void RPPGMobile::invalidateFace() {
+void RPPG::invalidateFace() {
     
     s = Mat1d();
     t = Mat1d();
     faceValid = false;
 }
 
-void RPPGMobile::extractSignal_xminay() {
+void RPPG::extractSignal_g0() {
+    
+    // Denoise
+    Mat s_den = Mat(s.rows, 1, CV_64F);
+    denoise(s.col(1), re, s_den);
+    
+    // Normalise
+    normalization(s_den, s_den);
+    
+    // Detrend
+    Mat s_det = Mat(s_den.rows, s_den.cols, CV_64F);
+    detrend(s_den, s_det, fps);
+    
+    // Moving average
+    Mat s_mav = Mat(s_det.rows, s_det.cols, CV_64F);
+    movingAverage(s_det, s_mav, 3, fps/3);
+    
+    s_mav.copyTo(s_f);
+    
+    // Logging
+    if (logMode) {
+        std::ofstream log;
+        std::ostringstream filepath;
+        filepath << logfilepath << "_signal_" << time << ".csv";
+        log.open(filepath.str());
+        log << "g;g_den;g_det;g_mav\n";
+        for (int i = 0; i < s.rows; i++) {
+            log << s.at<double>(i, 1) << ";";
+            log << s_den.at<double>(i, 0) << ";";
+            log << s_det.at<double>(i, 0) << ";";
+            log << s_mav.at<double>(i, 0) << "\n";
+        }
+        log.close();
+    }
+}
+
+void RPPG::extractSignal_g() {
+    
+    // Denoise
+    Mat s_den = Mat(s.rows, 1, CV_64F);
+    denoise(s.col(1), re, s_den);
+    
+    // Normalise
+    normalization(s_den, s_den);
+    
+    // Detrend
+    Mat s_det = Mat(s_den.rows, s_den.cols, CV_64F);
+    detrend(s_den, s_det, fps);
+    
+    // Moving average
+    Mat s_mav = Mat(s_det.rows, s_det.cols, CV_64F);
+    movingAverage(s_det, s_mav, 3, fmax(floor(fps/6), 2));
+    
+    s_mav.copyTo(s_f);
+    
+    // Logging
+    if (logMode) {
+        std::ofstream log;
+        std::ostringstream filepath;
+        filepath << logfilepath << "_signal_" << time << ".csv";
+        log.open(filepath.str());
+        log << "g;g_den;g_det;g_mav\n";
+        for (int i = 0; i < s.rows; i++) {
+            log << s.at<double>(i, 1) << ";";
+            log << s_den.at<double>(i, 0) << ";";
+            log << s_det.at<double>(i, 0) << ";";
+            log << s_mav.at<double>(i, 0) << "\n";
+        }
+        log.close();
+    }
+}
+
+void RPPG::extractSignal_pca() {
     
     // Denoise signals
-    Mat s_den = Mat(s.rows, s.cols, CV_32F);
+    Mat s_den = Mat(s.rows, s.cols, CV_64F);
+    denoise(s, re, s_den);
+    
+    // Normalize signals
+    normalization(s_den, s_den);
+    
+    // Detrend
+    Mat s_det = Mat(s.rows, s.cols, CV_64F);
+    detrend(s_den, s_det, fps);
+    
+    // PCA to reduce dimensionality
+    Mat s_pca = Mat(s.rows, 1, CV_32F);
+    pcaComponent(s_det, s_pca, low, high);
+    
+    // Moving average
+    Mat s_mav = Mat(s.rows, 1, CV_32F);
+    movingAverage(s_pca, s_mav, 3, fmax(floor(fps/6), 2));
+    
+    s_mav.copyTo(s_f);
+    
+    // Logging
+    if (logMode) {
+        std::ofstream log;
+        std::ostringstream filepath;
+        filepath << logfilepath << "_signal_" << time << ".csv";
+        log.open(filepath.str());
+        log << "re;r;g;b;r_den;g_den;b_den;r_det;g_det;b_det;pc;s_mav\n";
+        for (int i = 0; i < s.rows; i++) {
+            log << re.at<bool>(i, 0) << ";";
+            log << s.at<double>(i, 0) << ";";
+            log << s.at<double>(i, 1) << ";";
+            log << s.at<double>(i, 2) << ";";
+            log << s_den.at<double>(i, 0) << ";";
+            log << s_den.at<double>(i, 1) << ";";
+            log << s_den.at<double>(i, 2) << ";";
+            log << s_det.at<double>(i, 0) << ";";
+            log << s_det.at<double>(i, 1) << ";";
+            log << s_det.at<double>(i, 2) << ";";
+            log << s_pca.at<double>(i, 0) << ";";
+            log << s_mav.at<double>(i, 0) << "\n";
+        }
+        log.close();
+    }
+}
+
+void RPPG::extractSignal_xminay() {
+    
+    // Denoise signals
+    Mat s_den = Mat(s.rows, s.cols, CV_64F);
     denoise(s, re, s_den);
     
     // Normalize raw signals
-    Mat s_n = Mat(s_den.rows, s_den.cols, CV_32F);
+    Mat s_n = Mat(s_den.rows, s_den.cols, CV_64F);
     normalization(s_den, s_n);
     
     // Calculate X_s signal
-    Mat x_s = Mat(s.rows, s.cols, CV_32F);
+    Mat x_s = Mat(s.rows, s.cols, CV_64F);
     addWeighted(s_n.col(0), 3, s_n.col(1), -2, 0, x_s);
     
     // Calculate Y_s signal
-    Mat y_s = Mat(s.rows, s.cols, CV_32F);
+    Mat y_s = Mat(s.rows, s.cols, CV_64F);
     addWeighted(s_n.col(0), 1.5, s_n.col(1), 1, 0, y_s);
     addWeighted(y_s, 1, s_n.col(2), -1.5, 0, y_s);
-    
-    const int total = s.rows;
-    const int low = (int)(total * LOW_BPM / SEC_PER_MIN / fps);
-    const int high = (int)(total * HIGH_BPM / SEC_PER_MIN / fps) + 1;
     
     // Bandpass
     Mat x_f = Mat(s.rows, s.cols, CV_32F);
     bandpass(x_s, x_f, low, high);
+    x_f.convertTo(x_f, CV_64F);
     Mat y_f = Mat(s.rows, s.cols, CV_32F);
     bandpass(y_s, y_f, low, high);
+    y_f.convertTo(y_f, CV_64F);
     
     // Calculate alpha
     Scalar mean_x_f;
@@ -339,7 +477,11 @@ void RPPGMobile::extractSignal_xminay() {
     double alpha = stddev_x_f.val[0]/stddev_y_f.val[0];
     
     // Calculate signal
-    addWeighted(x_f, 1, y_f, -alpha, 0, s_f);
+    Mat xminay = Mat(s.rows, 1, CV_64F);
+    addWeighted(x_f, 1, y_f, -alpha, 0, xminay);
+    
+    // Moving average
+    movingAverage(xminay, s_f, 3, fmax(floor(fps/6), 2));
     
     // Logging
     if (logMode) {
@@ -347,7 +489,7 @@ void RPPGMobile::extractSignal_xminay() {
         std::ostringstream filepath;
         filepath << logfilepath << "_signal_" << time << ".csv";
         log.open(filepath.str());
-        log << "r;g;b;r_den;g_den;b_den;x_s;y_s;x_f;y_f;signal\n";
+        log << "r;g;b;r_den;g_den;b_den;x_s;y_s;x_f;y_f;s;s_f\n";
         for (int i = 0; i < s.rows; i++) {
             log << s.at<double>(i, 0) << ";";
             log << s.at<double>(i, 1) << ";";
@@ -357,58 +499,22 @@ void RPPGMobile::extractSignal_xminay() {
             log << s_den.at<double>(i, 2) << ";";
             log << x_s.at<double>(i, 0) << ";";
             log << y_s.at<double>(i, 0) << ";";
-            log << x_f.at<float>(i, 0) << ";";
-            log << y_f.at<float>(i, 0) << ";";
+            log << x_f.at<double>(i, 0) << ";";
+            log << y_f.at<double>(i, 0) << ";";
+            log << xminay.at<double>(i, 0) << ";";
             log << s_f.at<double>(i, 0) << "\n";
         }
         log.close();
     }
 }
 
-void RPPGMobile::extractSignal_den_detr_mean() {
-    
-    // Denoise
-    Mat signalDenoised;
-    denoise(s.col(1), re, signalDenoised);
-    
-    // Normalise
-    normalization(signalDenoised, signalDenoised);
-    
-    // Detrend
-    Mat signalDetrended;
-    detrend(signalDenoised, signalDetrended, fps);
-    
-    // Moving average
-    Mat signalMeaned;
-    movingAverage(signalDetrended, signalMeaned, 3, fps/3);
-    signalMeaned.copyTo(s_f);
-    
-    // Logging
-    if (logMode) {
-        std::ofstream log;
-        std::ostringstream filepath;
-        filepath << logfilepath << "_signal_" << time << ".csv";
-        log.open(filepath.str());
-        log << "g;g_den;g_detr;g_avg\n";
-        for (int i = 0; i < s.rows; i++) {
-            log << s.at<double>(i, 1) << ";";
-            log << signalDenoised.at<double>(i, 0) << ";";
-            log << signalDetrended.at<double>(i, 0) << ";";
-            log << signalMeaned.at<double>(i, 0) << "\n";
-        }
-        log.close();
-    }
-}
-
-void RPPGMobile::estimateHeartrate() {
+void RPPG::estimateHeartrate() {
     
     powerSpectrum = cv::Mat(s_f.size(), CV_32F);
     timeToFrequency(s_f, powerSpectrum, true);
     
     // band mask
     const int total = s_f.rows;
-    const int low = (int)(total * LOW_BPM / SEC_PER_MIN / fps);
-    const int high = (int)(total * HIGH_BPM / SEC_PER_MIN / fps) + 1;
     Mat bandMask = Mat::zeros(s_f.size(), CV_8U);
     bandMask.rowRange(min(low, total), min(high, total) + 1).setTo(ONE);
     
@@ -463,13 +569,13 @@ void RPPGMobile::estimateHeartrate() {
         maxBpm_ws = bpms_ws.at<double>(bpms_ws.rows-1, 0);
         
         std::cout << "meanBPM=" << meanBpm << " minBpm=" << minBpm << " maxBpm=" << maxBpm << std::endl;
-
+        
         bpms.pop_back(bpms.rows);
         bpms_ws.pop_back(bpms_ws.rows);
     }
 }
 
-void RPPGMobile::log() {
+void RPPG::log() {
     
     if (lastSamplingTime == time || lastSamplingTime == 0) {
         logfile << time << ";";
@@ -490,10 +596,10 @@ void RPPGMobile::log() {
     logfileDetailed.flush();
 }
 
-void RPPGMobile::draw(cv::Mat &frameRGB) {
+void RPPG::draw(cv::Mat &frameRGB) {
     
     // Draw roi
-    rectangle(frameRGB, roi, cv::GREEN);
+    rectangle(frameRGB, roi, GREEN);
     
     // Draw face shape
     ellipse(frameRGB,
@@ -526,8 +632,6 @@ void RPPGMobile::draw(cv::Mat &frameRGB) {
         
         // Draw powerSpectrum
         const int total = s_f.rows;
-        const int low = (int)(total * LOW_BPM / SEC_PER_MIN / fps);
-        const int high = (int)(total * HIGH_BPM / SEC_PER_MIN / fps) + 1;
         Mat bandMask = Mat::zeros(s_f.size(), CV_8U);
         bandMask.rowRange(min(low, total), min(high, total) + 1).setTo(ONE);
         minMaxLoc(powerSpectrum, &vmin, &vmax, &pmin, &pmax, bandMask);
@@ -549,25 +653,17 @@ void RPPGMobile::draw(cv::Mat &frameRGB) {
     if (faceValid) {
         ss.precision(3);
         ss << meanBpm << " bpm";
-        putText(frameRGB, ss.str(), Point(box.tl().x, box.tl().y - 10), cv::FONT_HERSHEY_PLAIN, 2, cv::RED, 2);
+        putText(frameRGB, ss.str(), Point(box.tl().x, box.tl().y - 10), FONT_HERSHEY_PLAIN, 2, RED, 2);
     }
     
     // Draw FPS text
     ss.str("");
     ss << fps << " fps";
-    putText(frameRGB, ss.str(), Point(box.tl().x, box.br().y + 40), cv::FONT_HERSHEY_PLAIN, 2, cv::GREEN, 2);
+    putText(frameRGB, ss.str(), Point(box.tl().x, box.br().y + 40), FONT_HERSHEY_PLAIN, 2, GREEN, 2);
     
     // Draw corners
-    /// Draw corners detected
     int r = 4;
     for (int i = 0; i < corners.size(); i++) {
-        circle(frameRGB, corners[i], r, cv::WHITE, -1, 8, 0);
+        circle(frameRGB, corners[i], r, WHITE, -1, 8, 0);
     }
-    
-    // Draw noise warning
-    //if (!((mode[0] ? v.at<bool>(v.rows-1, 0) : true) &&
-    //    (mode[1] ? v.at<bool>(v.rows-1, 1) : true) &&
-    //    (mode[2] ? v.at<bool>(v.rows-1, 2) : true))) {
-    //    circle(frameRGB, Point(box.tl().x, box.br().y + 60), 10, cv::RED, -1, 8, 0);
-    //}
 }

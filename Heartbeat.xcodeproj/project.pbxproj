@@ -10,9 +10,9 @@
 		FF09C0991D03601E00BAB860 /* Heartbeat.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FF09C0971D03601E00BAB860 /* Heartbeat.cpp */; };
 		FF09C09B1D04344A00BAB860 /* haarcascade_frontalface_alt.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = FF09C09A1D04324400BAB860 /* haarcascade_frontalface_alt.xml */; };
 		FF4D33E11CA6307C0041EABE /* FFmpegEncoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FF4D33DF1CA6307C0041EABE /* FFmpegEncoder.cpp */; };
-		FF8D594D1CF0CB64000CDB28 /* RPPGMobile.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FF8D594B1CF0CB64000CDB28 /* RPPGMobile.cpp */; };
 		FFDC35601C879BB000B04501 /* opencv.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FFDC355E1C879BB000B04501 /* opencv.cpp */; };
 		FFDFC5A11C891C4400C994E3 /* FFmpegDecoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FFDFC59F1C891C4400C994E3 /* FFmpegDecoder.cpp */; };
+		FFF4CA591D2E886A00684516 /* RPPG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FFF4CA571D2E886A00684516 /* RPPG.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -34,13 +34,13 @@
 		FF09C09A1D04324400BAB860 /* haarcascade_frontalface_alt.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = haarcascade_frontalface_alt.xml; sourceTree = SOURCE_ROOT; };
 		FF4D33DF1CA6307C0041EABE /* FFmpegEncoder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FFmpegEncoder.cpp; sourceTree = "<group>"; };
 		FF4D33E01CA6307C0041EABE /* FFmpegEncoder.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = FFmpegEncoder.hpp; sourceTree = "<group>"; };
-		FF8D594B1CF0CB64000CDB28 /* RPPGMobile.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RPPGMobile.cpp; sourceTree = "<group>"; };
-		FF8D594C1CF0CB64000CDB28 /* RPPGMobile.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = RPPGMobile.hpp; sourceTree = "<group>"; };
 		FFB64BAE1C83FA3E00B3766E /* Heartbeat */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Heartbeat; sourceTree = BUILT_PRODUCTS_DIR; };
 		FFDC355E1C879BB000B04501 /* opencv.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = opencv.cpp; sourceTree = "<group>"; };
 		FFDC355F1C879BB000B04501 /* opencv.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = opencv.hpp; sourceTree = "<group>"; };
 		FFDFC59F1C891C4400C994E3 /* FFmpegDecoder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FFmpegDecoder.cpp; sourceTree = "<group>"; };
 		FFDFC5A01C891C4400C994E3 /* FFmpegDecoder.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = FFmpegDecoder.hpp; sourceTree = "<group>"; };
+		FFF4CA571D2E886A00684516 /* RPPG.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RPPG.cpp; sourceTree = "<group>"; };
+		FFF4CA581D2E886A00684516 /* RPPG.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = RPPG.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -58,7 +58,6 @@
 			isa = PBXGroup;
 			children = (
 				FFFFF0931C8412C1007B4A79 /* Resource */,
-				FFFFF0921C841225007B4A79 /* Libraries */,
 				FFB64BB01C83FA3E00B3766E /* Heartbeat */,
 				FFB64BAF1C83FA3E00B3766E /* Products */,
 			);
@@ -77,8 +76,8 @@
 			children = (
 				FF09C0971D03601E00BAB860 /* Heartbeat.cpp */,
 				FF09C0981D03601E00BAB860 /* Heartbeat.hpp */,
-				FF8D594B1CF0CB64000CDB28 /* RPPGMobile.cpp */,
-				FF8D594C1CF0CB64000CDB28 /* RPPGMobile.hpp */,
+				FFF4CA571D2E886A00684516 /* RPPG.cpp */,
+				FFF4CA581D2E886A00684516 /* RPPG.hpp */,
 				FFDC355E1C879BB000B04501 /* opencv.cpp */,
 				FFDC355F1C879BB000B04501 /* opencv.hpp */,
 				FFDFC59F1C891C4400C994E3 /* FFmpegDecoder.cpp */,
@@ -87,13 +86,6 @@
 				FF4D33E01CA6307C0041EABE /* FFmpegEncoder.hpp */,
 			);
 			path = Heartbeat;
-			sourceTree = "<group>";
-		};
-		FFFFF0921C841225007B4A79 /* Libraries */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			name = Libraries;
 			sourceTree = "<group>";
 		};
 		FFFFF0931C8412C1007B4A79 /* Resource */ = {
@@ -161,9 +153,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				FFDC35601C879BB000B04501 /* opencv.cpp in Sources */,
-				FF8D594D1CF0CB64000CDB28 /* RPPGMobile.cpp in Sources */,
 				FF09C0991D03601E00BAB860 /* Heartbeat.cpp in Sources */,
 				FFDFC5A11C891C4400C994E3 /* FFmpegDecoder.cpp in Sources */,
+				FFF4CA591D2E886A00684516 /* RPPG.cpp in Sources */,
 				FF4D33E11CA6307C0041EABE /* FFmpegEncoder.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -208,10 +200,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = /usr/local/include;
-				LIBRARY_SEARCH_PATHS = (
-					"/usr/local/Cellar/opencv3/**",
-					/usr/local/lib,
-				);
+				LIBRARY_SEARCH_PATHS = /usr/local/lib;
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -250,10 +239,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = /usr/local/include;
-				LIBRARY_SEARCH_PATHS = (
-					"/usr/local/Cellar/opencv3/**",
-					/usr/local/lib,
-				);
+				LIBRARY_SEARCH_PATHS = /usr/local/lib;
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = macosx;
@@ -267,40 +253,25 @@
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					/usr/local/include,
-					/usr/local/Cellar/ffmpeg/3.0/include,
 				);
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)",
 					/usr/local/lib,
-					/usr/local/Cellar/ffmpeg/3.0/lib,
 				);
 				OTHER_LDFLAGS = (
 					"$(inherited)",
-					"-lopencv_calib3d",
 					"-lopencv_core",
-					"-lopencv_features2d",
-					"-lopencv_flann",
 					"-lopencv_highgui",
 					"-lopencv_imgcodecs",
 					"-lopencv_imgproc",
-					"-lopencv_ml",
 					"-lopencv_objdetect",
-					"-lopencv_photo",
-					"-lopencv_shape",
-					"-lopencv_stitching",
-					"-lopencv_superres",
-					"-lopencv_ts",
 					"-lopencv_video",
 					"-lopencv_videoio",
-					"-lopencv_videostab",
-					"-lavformat",
 					"-lavcodec",
+					"-lavformat",
 					"-lavutil",
 					"-lswscale",
-					"-liconv",
-					"-lz",
-					"-lavfilter",
 				);
 				PRODUCT_NAME = Heartbeat;
 			};
@@ -313,40 +284,25 @@
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					/usr/local/include,
-					/usr/local/Cellar/ffmpeg/3.0/include,
 				);
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)",
 					/usr/local/lib,
-					/usr/local/Cellar/ffmpeg/3.0/lib,
 				);
 				OTHER_LDFLAGS = (
 					"$(inherited)",
-					"-lopencv_calib3d",
 					"-lopencv_core",
-					"-lopencv_features2d",
-					"-lopencv_flann",
 					"-lopencv_highgui",
 					"-lopencv_imgcodecs",
 					"-lopencv_imgproc",
-					"-lopencv_ml",
 					"-lopencv_objdetect",
-					"-lopencv_photo",
-					"-lopencv_shape",
-					"-lopencv_stitching",
-					"-lopencv_superres",
-					"-lopencv_ts",
 					"-lopencv_video",
 					"-lopencv_videoio",
-					"-lopencv_videostab",
-					"-lavformat",
 					"-lavcodec",
+					"-lavformat",
 					"-lavutil",
 					"-lswscale",
-					"-liconv",
-					"-lz",
-					"-lavfilter",
 				);
 				PRODUCT_NAME = Heartbeat;
 			};
