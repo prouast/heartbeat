@@ -42,12 +42,13 @@ namespace cv {
     void denoise(cv::InputArray _a, cv::InputArray _jumps, cv::OutputArray _b);
     void detrend(cv::InputArray _a, cv::OutputArray _b, int lambda);
     void movingAverage(cv::InputArray _a, cv::OutputArray _b, int n, int s);
+    double movingAverageParameter(double fps, double bpm = 75);
     void bandpass(cv::InputArray _a, cv::OutputArray _b, double low, double high);
     void butterworth_bandpass_filter(cv::Mat &filter, double cutin, double cutoff, int n);
     void butterworth_lowpass_filter(cv::Mat &filter, double cutoff, int n);
     void frequencyToTime(cv::InputArray _a, cv::OutputArray _b);
     void timeToFrequency(cv::InputArray _a, cv::OutputArray _b, bool magnitude);
-    void pcaComponent(cv::InputArray _a, cv::OutputArray _b, int low, int high);
+    void pcaComponent(cv::InputArray _a, cv::OutputArray _b, cv::OutputArray _pc, int low, int high);
     
     /* LOGGING */
     

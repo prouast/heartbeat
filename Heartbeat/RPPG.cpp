@@ -20,7 +20,7 @@ using namespace std;
 
 #define LOW_BPM 42
 #define HIGH_BPM 240
-#define REL_MIN_FACE_SIZE 0.2
+#define REL_MIN_FACE_SIZE 0.4
 #define SEC_PER_MIN 60
 #define MAX_CORNERS 10
 #define MIN_CORNERS 5
@@ -115,11 +115,13 @@ void RPPG::processFrame(Mat &frameRGB, Mat &frameGray, int64_t time) {
             push(re);
         }
         
+        assert(s.rows == t.rows && s.rows == re.rows);
+        
         // New values
         Scalar means = mean(frameRGB, mask);
-        
         // Add new values to raw signal buffer
-        s.push_back(Mat(1, 3, CV_64F, (double[]){means(0), means(1), means(2)}));
+        double values[] = {means(0), means(1), means(2)};
+        s.push_back(Mat(1, 3, CV_64F, values));
         t.push_back<long>(time);
         
         // Save rescan flag
@@ -137,9 +139,6 @@ void RPPG::processFrame(Mat &frameRGB, Mat &frameGray, int64_t time) {
             
             // Filtering
             switch (algorithm) {
-                case g0:
-                    extractSignal_g0();
-                    break;
                 case g:
                     extractSignal_g();
                     break;
@@ -153,13 +152,14 @@ void RPPG::processFrame(Mat &frameRGB, Mat &frameGray, int64_t time) {
             
             // HR estimation
             estimateHeartrate();
+            
+            // Log
+            log();
         }
         
         if (guiMode) {
             draw(frameRGB);
         }
-        
-        log();
     }
     
     rescanFlag = false;
@@ -276,23 +276,27 @@ void RPPG::trackFace(Mat &frameGray) {
         // Estimate affine transform
         Mat transform = estimateRigidTransform(corners_0v, corners_1v, false);
         
-        // Update box
-        Contour2f boxCoords;
-        boxCoords.push_back(box.tl());
-        boxCoords.push_back(box.br());
-        Contour2f transformedBoxCoords;
-        cv::transform(boxCoords, transformedBoxCoords, transform);
-        box = Rect(transformedBoxCoords[0], transformedBoxCoords[1]);
-        
-        // Update roi
-        Contour2f roiCoords;
-        roiCoords.push_back(roi.tl());
-        roiCoords.push_back(roi.br());
-        Contour2f transformedRoiCoords;
-        cv::transform(roiCoords, transformedRoiCoords, transform);
-        roi = Rect(transformedRoiCoords[0], transformedRoiCoords[1]);
-        
-        updateMask(frameGray);
+        if (transform.total() > 0) {
+            
+            // Update box
+            Contour2f boxCoords;
+            boxCoords.push_back(box.tl());
+            boxCoords.push_back(box.br());
+            Contour2f transformedBoxCoords;
+            
+            cv::transform(boxCoords, transformedBoxCoords, transform);
+            box = Rect(transformedBoxCoords[0], transformedBoxCoords[1]);
+            
+            // Update roi
+            Contour2f roiCoords;
+            roiCoords.push_back(roi.tl());
+            roiCoords.push_back(roi.br());
+            Contour2f transformedRoiCoords;
+            cv::transform(roiCoords, transformedRoiCoords, transform);
+            roi = Rect(transformedRoiCoords[0], transformedRoiCoords[1]);
+            
+            updateMask(frameGray);
+        }
         
     } else {
         cout << "Tracking failed! Not enough corners left." << endl;
@@ -317,43 +321,8 @@ void RPPG::invalidateFace() {
     
     s = Mat1d();
     t = Mat1d();
+    re = Mat1b();
     faceValid = false;
-}
-
-void RPPG::extractSignal_g0() {
-    
-    // Denoise
-    Mat s_den = Mat(s.rows, 1, CV_64F);
-    denoise(s.col(1), re, s_den);
-    
-    // Normalise
-    normalization(s_den, s_den);
-    
-    // Detrend
-    Mat s_det = Mat(s_den.rows, s_den.cols, CV_64F);
-    detrend(s_den, s_det, fps);
-    
-    // Moving average
-    Mat s_mav = Mat(s_det.rows, s_det.cols, CV_64F);
-    movingAverage(s_det, s_mav, 3, fps/3);
-    
-    s_mav.copyTo(s_f);
-    
-    // Logging
-    if (logMode) {
-        std::ofstream log;
-        std::ostringstream filepath;
-        filepath << logfilepath << "_signal_" << time << ".csv";
-        log.open(filepath.str());
-        log << "g;g_den;g_det;g_mav\n";
-        for (int i = 0; i < s.rows; i++) {
-            log << s.at<double>(i, 1) << ";";
-            log << s_den.at<double>(i, 0) << ";";
-            log << s_det.at<double>(i, 0) << ";";
-            log << s_mav.at<double>(i, 0) << "\n";
-        }
-        log.close();
-    }
 }
 
 void RPPG::extractSignal_g() {
@@ -362,6 +331,8 @@ void RPPG::extractSignal_g() {
     Mat s_den = Mat(s.rows, 1, CV_64F);
     denoise(s.col(1), re, s_den);
     
+    //printMat<double>("s_den", s_den);
+    
     // Normalise
     normalization(s_den, s_den);
     
@@ -371,7 +342,7 @@ void RPPG::extractSignal_g() {
     
     // Moving average
     Mat s_mav = Mat(s_det.rows, s_det.cols, CV_64F);
-    movingAverage(s_det, s_mav, 3, fmax(floor(fps/6), 2));
+    movingAverage(s_det, s_mav, 3, movingAverageParameter(fps, bpm));
     
     s_mav.copyTo(s_f);
     
@@ -381,8 +352,9 @@ void RPPG::extractSignal_g() {
         std::ostringstream filepath;
         filepath << logfilepath << "_signal_" << time << ".csv";
         log.open(filepath.str());
-        log << "g;g_den;g_det;g_mav\n";
+        log << "re;g;g_den;g_det;g_mav\n";
         for (int i = 0; i < s.rows; i++) {
+            log << re.at<bool>(i, 0) << ";";
             log << s.at<double>(i, 1) << ";";
             log << s_den.at<double>(i, 0) << ";";
             log << s_det.at<double>(i, 0) << ";";
@@ -407,11 +379,12 @@ void RPPG::extractSignal_pca() {
     
     // PCA to reduce dimensionality
     Mat s_pca = Mat(s.rows, 1, CV_32F);
-    pcaComponent(s_det, s_pca, low, high);
+    Mat pc = Mat(s.rows, s.cols, CV_32F);
+    pcaComponent(s_det, s_pca, pc, low, high);
     
     // Moving average
     Mat s_mav = Mat(s.rows, 1, CV_32F);
-    movingAverage(s_pca, s_mav, 3, fmax(floor(fps/6), 2));
+    movingAverage(s_pca, s_mav, 3, movingAverageParameter(fps, bpm));
     
     s_mav.copyTo(s_f);
     
@@ -421,7 +394,7 @@ void RPPG::extractSignal_pca() {
         std::ostringstream filepath;
         filepath << logfilepath << "_signal_" << time << ".csv";
         log.open(filepath.str());
-        log << "re;r;g;b;r_den;g_den;b_den;r_det;g_det;b_det;pc;s_mav\n";
+        log << "re;r;g;b;r_den;g_den;b_den;r_det;g_det;b_det;pc1;pc2;pc3;s_pca;s_mav\n";
         for (int i = 0; i < s.rows; i++) {
             log << re.at<bool>(i, 0) << ";";
             log << s.at<double>(i, 0) << ";";
@@ -433,6 +406,9 @@ void RPPG::extractSignal_pca() {
             log << s_det.at<double>(i, 0) << ";";
             log << s_det.at<double>(i, 1) << ";";
             log << s_det.at<double>(i, 2) << ";";
+            log << pc.at<double>(i, 0) << ";";
+            log << pc.at<double>(i, 1) << ";";
+            log << pc.at<double>(i, 2) << ";";
             log << s_pca.at<double>(i, 0) << ";";
             log << s_mav.at<double>(i, 0) << "\n";
         }
@@ -481,7 +457,7 @@ void RPPG::extractSignal_xminay() {
     addWeighted(x_f, 1, y_f, -alpha, 0, xminay);
     
     // Moving average
-    movingAverage(xminay, s_f, 3, fmax(floor(fps/6), 2));
+    movingAverage(xminay, s_f, 3, movingAverageParameter(fps, bpm));
     
     // Logging
     if (logMode) {
@@ -602,10 +578,13 @@ void RPPG::draw(cv::Mat &frameRGB) {
     rectangle(frameRGB, roi, GREEN);
     
     // Draw face shape
-    ellipse(frameRGB,
-            Point(box.tl().x + box.width / 2.0, box.tl().y + box.height / 2.0),
-            Size(box.width / 2.5, box.height / 2.0),
-            0, 0, 360, cv::GREEN);
+    //ellipse(frameRGB,
+    //        Point(box.tl().x + box.width / 2.0, box.tl().y + box.height / 2.0),
+    //        Size(box.width / 2.5, box.height / 2.0),
+    //        0, 0, 360, cv::GREEN);
+    
+    // Draw bounding box
+    rectangle(frameRGB, box, RED);
     
     // Draw signal
     if (!s_f.empty() && !powerSpectrum.empty()) {
@@ -620,7 +599,7 @@ void RPPG::draw(cv::Mat &frameRGB) {
         minMaxLoc(s_f, &vmin, &vmax, &pmin, &pmax);
         double heightMult = displayHeight/(vmax - vmin);
         double widthMult = displayWidth/(s_f.rows - 1);
-        double drawAreaTlX = box.tl().x + box.width;
+        double drawAreaTlX = box.tl().x + box.width + 20;
         double drawAreaTlY = box.tl().y;
         Point p1(drawAreaTlX, drawAreaTlY + (vmax - s_f.at<double>(0, 0))*heightMult);
         Point p2;
@@ -637,7 +616,7 @@ void RPPG::draw(cv::Mat &frameRGB) {
         minMaxLoc(powerSpectrum, &vmin, &vmax, &pmin, &pmax, bandMask);
         heightMult = displayHeight/(vmax - vmin);
         widthMult = displayWidth/(high - low);
-        drawAreaTlX = box.tl().x + box.width;
+        drawAreaTlX = box.tl().x + box.width + 20;
         drawAreaTlY = box.tl().y + box.height/2.0;
         p1 = Point(drawAreaTlX, drawAreaTlY + (vmax - powerSpectrum.at<double>(low, 0))*heightMult);
         for (int i = low + 1; i <= high; i++) {
@@ -662,8 +641,10 @@ void RPPG::draw(cv::Mat &frameRGB) {
     putText(frameRGB, ss.str(), Point(box.tl().x, box.br().y + 40), FONT_HERSHEY_PLAIN, 2, GREEN, 2);
     
     // Draw corners
-    int r = 4;
     for (int i = 0; i < corners.size(); i++) {
-        circle(frameRGB, corners[i], r, WHITE, -1, 8, 0);
+        //circle(frameRGB, corners[i], r, WHITE, -1, 8, 0);
+        line(frameRGB, Point(corners[i].x-5,corners[i].y), Point(corners[i].x+5,corners[i].y), GREEN, 1);
+        line(frameRGB, Point(corners[i].x,corners[i].y-5), Point(corners[i].x,corners[i].y+5), GREEN, 1);
+        
     }
 }

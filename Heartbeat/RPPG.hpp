@@ -18,7 +18,7 @@
 using namespace cv;
 using namespace std;
 
-enum rPPGAlgorithm { g0, g, pca, xminay };
+enum rPPGAlgorithm { g, pca, xminay };
 
 class RPPG {
     
@@ -49,7 +49,6 @@ private:
     void trackFace(Mat &frameGray);
     void updateMask(Mat &frameGray);
     void updateROI();
-    void extractSignal_g0();
     void extractSignal_g();
     void extractSignal_pca();
     void extractSignal_xminay();
@@ -83,6 +82,7 @@ private:
     int low;
     int64_t now;
     bool faceValid;
+    bool signalValid;
     bool rescanFlag;
     
     // Tracking

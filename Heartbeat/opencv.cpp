@@ -306,14 +306,18 @@ namespace cv {
     // Moving average filter (low pass equivalent)
     void movingAverage(InputArray _a, OutputArray _b, int n, int s) {
         
-        //printMat<double>("a", _a);
-        //std::cout << "n=" << n << " s=" << s << std::endl;
+        CV_Assert(s > 0);
         
         _a.getMat().copyTo(_b);
         Mat b = _b.getMat();
         for (size_t i = 0; i < n; i++) {
             cv::blur(b, b, Size(s, s));
         }
+    }
+    
+    double movingAverageParameter(double fps, double bpm) {
+        if (bpm == 0) bpm = 75;
+        return fmax(floor(60/bpm * fps/4), 2);
     }
     
     // Bandpass filter
@@ -405,7 +409,7 @@ namespace cv {
         output.copyTo(_b);
     }
     
-    void pcaComponent(cv::InputArray _a, cv::OutputArray _b, int low, int high) {
+    void pcaComponent(cv::InputArray _a, cv::OutputArray _b, cv::OutputArray _pc, int low, int high) {
         
         Mat a = _a.getMat();
         CV_Assert(a.type() == CV_64F);
@@ -448,6 +452,8 @@ namespace cv {
             //pc.col(1).copyTo(_b);
             pc.col(idx[1]).copyTo(_b);
         }
+        
+        pc.copyTo(_pc);
     }
     
     /* LOGGING */

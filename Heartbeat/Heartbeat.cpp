@@ -82,8 +82,7 @@ bool to_bool(string s) {
 
 rPPGAlgorithm to_algorithm(string s) {
     rPPGAlgorithm result;
-    if (s == "g0") result = g0;
-    else if (s == "g") result = g;
+    if (s == "g") result = g;
     else if (s == "pca") result = pca;
     else if (s == "xminay") result = xminay;
     else {
@@ -210,6 +209,9 @@ int main(int argc, char * argv[]) {
             cout << "TIME BASE: " << TIME_BASE << endl;
             cout << "START TIME: " << decoder.GetStartTime() << endl;
             
+            std::ostringstream title;
+            title << "rPPG offline - " << WIDTH << "x" << HEIGHT << " -a " << algorithm << " -r " << rescanFrequency << " -f " << samplingFrequency << " -min " << minSignalSize << " -max " << maxSignalSize << " -ds " << downsample;
+            
             // allocate and init a re-usable frame
             AVFrame *decoded;
             decoded = av_frame_alloc();
@@ -260,7 +262,7 @@ int main(int argc, char * argv[]) {
                     }
                     
                     if (gui) {
-                        imshow("MOBILE ALGORITHM", frameRGB);
+                        imshow(title.str(), frameRGB);
                         if (waitKey(30) >= 0) break;
                     }
                     
@@ -307,6 +309,9 @@ int main(int argc, char * argv[]) {
         cout << "FPS: " << FPS << endl;
         cout << "MSEC: " << MSEC << endl;
         
+        std::ostringstream title;
+        title << "rPPG online - " << WIDTH << "x" << HEIGHT << " -a " << algorithm << " -r " << rescanFrequency << " -f " << samplingFrequency << " -min " << minSignalSize << " -max " << maxSignalSize << " -ds " << downsample;
+        
         RPPG rppg = RPPG();
         rppg.load(algorithm,
                   WIDTH, HEIGHT, TIME_BASE, downsample,
@@ -341,7 +346,7 @@ int main(int argc, char * argv[]) {
                 rppg.processFrame(frameRGB, frameGray, time);
                 
                 if (gui) {
-                    imshow("Live", frameRGB);
+                    imshow(title.str(), frameRGB);
                 }
             
             } else {
