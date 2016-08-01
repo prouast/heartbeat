@@ -58,22 +58,6 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "Heartbeat/opencv.cpp"
-            timestampString = "485863973.83601"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "160"
-            endingLineNumber = "160"
-            landmarkName = "crop(InputArray _s, InputArray _v, OutputArray _r, bool mode[])"
-            landmarkType = "7">
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
-            shouldBeEnabled = "No"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "Heartbeat/opencv.cpp"
             timestampString = "486852221.198361"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"

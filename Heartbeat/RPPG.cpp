@@ -331,8 +331,6 @@ void RPPG::extractSignal_g() {
     Mat s_den = Mat(s.rows, 1, CV_64F);
     denoise(s.col(1), re, s_den);
     
-    //printMat<double>("s_den", s_den);
-    
     // Normalise
     normalization(s_den, s_den);
     
@@ -342,7 +340,7 @@ void RPPG::extractSignal_g() {
     
     // Moving average
     Mat s_mav = Mat(s_det.rows, s_det.cols, CV_64F);
-    movingAverage(s_det, s_mav, 3, movingAverageParameter(fps, bpm));
+    movingAverage(s_det, s_mav, 3, fmax(floor(fps/6), 2));
     
     s_mav.copyTo(s_f);
     
@@ -384,7 +382,7 @@ void RPPG::extractSignal_pca() {
     
     // Moving average
     Mat s_mav = Mat(s.rows, 1, CV_32F);
-    movingAverage(s_pca, s_mav, 3, movingAverageParameter(fps, bpm));
+    movingAverage(s_pca, s_mav, 3, fmax(floor(fps/6), 2));
     
     s_mav.copyTo(s_f);
     
@@ -457,7 +455,7 @@ void RPPG::extractSignal_xminay() {
     addWeighted(x_f, 1, y_f, -alpha, 0, xminay);
     
     // Moving average
-    movingAverage(xminay, s_f, 3, movingAverageParameter(fps, bpm));
+    movingAverage(xminay, s_f, 3, fmax(floor(fps/6), 2));
     
     // Logging
     if (logMode) {

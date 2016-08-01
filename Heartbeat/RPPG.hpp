@@ -82,7 +82,6 @@ private:
     int low;
     int64_t now;
     bool faceValid;
-    bool signalValid;
     bool rescanFlag;
     
     // Tracking
