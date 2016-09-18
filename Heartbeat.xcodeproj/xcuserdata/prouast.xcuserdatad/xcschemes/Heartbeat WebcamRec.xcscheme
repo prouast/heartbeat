@@ -67,11 +67,11 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "-i /Users/prouast/Desktop/Temp/WebcamRec_iism-kd2-b06.mp4"
-            isEnabled = "NO">
+            argument = "-i /Users/prouast/Desktop/WebcamRec_iism-kd2-b06.mp4"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "-a g"
+            argument = "-a pca"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
@@ -80,26 +80,30 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-ds 1"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-baseline /Users/prouast/Desktop/data.csv"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "-log true"
+            argument = "-log false"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "-r 2"
-            isEnabled = "YES">
+            argument = "-r 1"
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-f 1"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-max 12"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "-max 6"
-            isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "-min 2"
+            argument = "-min 6"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

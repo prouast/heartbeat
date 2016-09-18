@@ -320,8 +320,10 @@ void RPPG::updateMask(Mat &frameGray) {
 void RPPG::invalidateFace() {
     
     s = Mat1d();
+    s_f = Mat1d();
     t = Mat1d();
     re = Mat1b();
+    powerSpectrum = Mat1d();
     faceValid = false;
 }
 
@@ -574,13 +576,7 @@ void RPPG::draw(cv::Mat &frameRGB) {
     
     // Draw roi
     rectangle(frameRGB, roi, GREEN);
-    
-    // Draw face shape
-    //ellipse(frameRGB,
-    //        Point(box.tl().x + box.width / 2.0, box.tl().y + box.height / 2.0),
-    //        Size(box.width / 2.5, box.height / 2.0),
-    //        0, 0, 360, cv::GREEN);
-    
+
     // Draw bounding box
     rectangle(frameRGB, box, RED);
     
@@ -643,6 +639,5 @@ void RPPG::draw(cv::Mat &frameRGB) {
         //circle(frameRGB, corners[i], r, WHITE, -1, 8, 0);
         line(frameRGB, Point(corners[i].x-5,corners[i].y), Point(corners[i].x+5,corners[i].y), GREEN, 1);
         line(frameRGB, Point(corners[i].x,corners[i].y-5), Point(corners[i].x,corners[i].y+5), GREEN, 1);
-        
     }
 }

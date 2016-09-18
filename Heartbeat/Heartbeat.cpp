@@ -15,6 +15,7 @@
 #include "opencv.hpp"
 #include "FFmpegDecoder.hpp"
 #include "FFmpegEncoder.hpp"
+#include "Baseline.hpp"
 
 #define DEFAULT_ALGORITHM "g"
 #define DEFAULT_RESCAN_FREQUENCY 1
@@ -145,6 +146,9 @@ int main(int argc, char * argv[]) {
         minSignalSize = DEFAULT_MIN_SIGNAL_SIZE;
     }
     
+    // visualize baseline setting
+    string baseline_input = cmd_line.get_arg("-baseline");
+    
     if (minSignalSize > maxSignalSize) {
         std::cout << "Max signal size must be greater or equal min signal size!" << std::endl;
         exit(0);
@@ -228,6 +232,11 @@ int main(int argc, char * argv[]) {
                       LOG_PATH, CLASSIFIER_PATH,
                       log, gui);
             
+            Baseline baseline = Baseline();
+            if (baseline_input != "") {
+                baseline.load(1, 0.000001, baseline_input);
+            }
+            
             cout << "START ALGORITHM" << endl;
             
             int i = 0;
@@ -259,6 +268,10 @@ int main(int argc, char * argv[]) {
                     } else {
                         
                         cout << "SKIPPING FRAME TO DOWNSAMPLE!" << endl;
+                    }
+                    
+                    if (baseline_input != "") {
+                        baseline.processFrame(frameRGB, time);
                     }
                     
                     if (gui) {

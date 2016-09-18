@@ -63,8 +63,8 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "234"
             endingLineNumber = "234"
-            landmarkName = "weightedSquaresMeanIndex(InputArray _a, int low, int high)"
-            landmarkType = "7">
+            landmarkName = "butterworth_bandpass_filter(Mat &amp;filter, double cutin, double cutoff, int n)"
+            landmarkType = "9">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -112,22 +112,6 @@
             startingLineNumber = "291"
             endingLineNumber = "291"
             landmarkName = "RPPGMobile::updateMask(cv::Mat &amp;frameGray)"
-            landmarkType = "5">
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
-            shouldBeEnabled = "No"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "Heartbeat/RPPG.cpp"
-            timestampString = "490545538.580819"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "335"
-            endingLineNumber = "335"
-            landmarkName = "RPPG::extractSignal_g()"
             landmarkType = "5">
          </BreakpointContent>
       </BreakpointProxy>
