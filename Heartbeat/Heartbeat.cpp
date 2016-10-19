@@ -87,7 +87,7 @@ rPPGAlgorithm to_algorithm(string s) {
     else if (s == "pca") result = pca;
     else if (s == "xminay") result = xminay;
     else {
-        std::cout << "Please specify valid algorithm (g0, g, pca, xminay)!" << std::endl;
+        std::cout << "Please specify valid algorithm (g, pca, xminay)!" << std::endl;
         exit(0);
     }
     return result;
