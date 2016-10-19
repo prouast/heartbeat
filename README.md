@@ -33,7 +33,7 @@ They must be installed on the system such that headers and libraries are found o
 Compile the source code for your system, providing a number of required linker flags, e.g.:
 
 ```sh
-$ g++ -std=c++11 -lopencv_core -lopencv_highgui -lopencv_imgcodecs -lopencv_imgproc -lopencv_objdetect -lopencv_video -lopencv_videoio -lavcodec -lavformat -lavutil -lswscale  Heartbeat.cpp FFmpegDecoder.cpp FFmpegEncoder.cpp opencv.cpp RPPG.cpp -o Heartbeat
+$ g++ -std=c++11 -lopencv_core -lopencv_highgui -lopencv_imgcodecs -lopencv_imgproc -lopencv_objdetect -lopencv_video -lopencv_videoio -lavcodec -lavformat -lavutil -lswscale  Heartbeat.cpp FFmpegDecoder.cpp FFmpegEncoder.cpp opencv.cpp RPPG.cpp Baseline.cpp -o Heartbeat
 ```
 
 License
