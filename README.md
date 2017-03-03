@@ -13,6 +13,7 @@ Here's how it works:
 If you are interested in the specifics, feel free to have a read of our publications on the topic:
   - [Remote Photoplethysmography: Evaluation of Contactless Heart Rate Measurement in an Information Systems Setting][aitic]
   - [Using Contactless Heart Rate Measurements for Real-Time Assessment of Affective States][gmunden]
+  - [Remote heart rate measurement using low-cost RGB face video: A technical literature review][fcs]
 
 ### Demo
 
@@ -44,6 +45,7 @@ GPL-3.0
 [//]: # (These are reference links used in the body of this note and get stripped out when the markdown processor does its job. There is no need to format nicely because it shouldn't be seen. Thanks SO - http://stackoverflow.com/questions/4823468/store-comments-in-markdown-syntax)
 
    [aitic]: <http://air.newcastle.edu.au/AITIC_files/Paper_40.pdf>
+   [fcs]: <https://www.researchgate.net/profile/Raymond_Chiong/publication/306285292_Remote_heart_rate_measurement_using_low-cost_RGB_face_video_A_technical_literature_review/links/58098ac808ae1c98c252637d.pdf>
    [gmunden]: <http://link.springer.com/chapter/10.1007/978-3-319-41402-7_20>
    [OpenCV]: <http://opencv.org/downloads.html>
    [ffmpeg]: <https://ffmpeg.org/download.html>
