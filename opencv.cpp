@@ -27,7 +27,7 @@ namespace cv {
         } else if (t.rows == 1) {
             result = std::numeric_limits<double>::max();
         } else {
-            double diff = (t.at<long>(t.rows-1, 0) - t.at<long>(0, 0)) * timeBase;
+            double diff = (t.at<int>(t.rows-1, 0) - t.at<int>(0, 0)) * timeBase;
             result = diff == 0 ? std::numeric_limits<double>::max() : t.rows/diff;
         }
         

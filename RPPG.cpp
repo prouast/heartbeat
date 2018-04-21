@@ -76,7 +76,7 @@ void RPPG::exit() {
     logfileDetailed.close();
 }
 
-void RPPG::processFrame(Mat &frameRGB, Mat &frameGray, int64_t time) {
+void RPPG::processFrame(Mat &frameRGB, Mat &frameGray, int time) {
     
     // Set time
     this->time = time;
@@ -122,10 +122,10 @@ void RPPG::processFrame(Mat &frameRGB, Mat &frameGray, int64_t time) {
         // Add new values to raw signal buffer
         double values[] = {means(0), means(1), means(2)};
         s.push_back(Mat(1, 3, CV_64F, values));
-        t.push_back<long>(time);
+        t.push_back(time);
         
         // Save rescan flag
-        re.push_back<bool>(rescanFlag);
+        re.push_back(rescanFlag);
         
         // Update fps
         fps = getFps(t, timeBase);

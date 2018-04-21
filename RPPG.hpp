@@ -35,7 +35,7 @@ public:
               const string &logPath, const string &classifierPath,
               const bool log, const bool gui);
     
-    void processFrame(Mat &frameRGB, Mat &frameGray, int64_t time);
+    void processFrame(Mat &frameRGB, Mat &frameGray, int time);
     
     void exit();
     
