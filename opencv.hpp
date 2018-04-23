@@ -15,7 +15,7 @@
 #include <opencv2/core/core.hpp>
 
 namespace cv {
-    
+
     const Scalar BLACK    (  0,   0,   0);
     const Scalar BLUE     (255,   0,   0);
     const Scalar GREEN    (  0, 255,   0);
@@ -23,17 +23,15 @@ namespace cv {
     const Scalar WHITE    (255, 255, 255);
     const Scalar ZERO     (0);
     const Scalar ONE      (1);
-    
+
     /* COMMON FUNCTIONS */
-    
+
     double getFps(cv::Mat &t, const double timeBase);
     void push(cv::Mat &m);
     void plot(cv::Mat &mat);
-    double weightedMeanIndex(InputArray _a, int low, int high);
-    double weightedSquaresMeanIndex(InputArray _a, int low, int high);
     
     /* FILTERS */
-    
+
     void normalization(cv::InputArray _a, cv::OutputArray _b);
     void denoise(cv::InputArray _a, cv::InputArray _jumps, cv::OutputArray _b);
     void detrend(cv::InputArray _a, cv::OutputArray _b, int lambda);
@@ -44,11 +42,11 @@ namespace cv {
     void frequencyToTime(cv::InputArray _a, cv::OutputArray _b);
     void timeToFrequency(cv::InputArray _a, cv::OutputArray _b, bool magnitude);
     void pcaComponent(cv::InputArray _a, cv::OutputArray _b, cv::OutputArray _pc, int low, int high);
-    
+
     /* LOGGING */
-    
+
     void printMatInfo(const std::string &name, InputArray _a);
-    
+
     template<typename T>
     void printMat(const std::string &name, InputArray _a,
                   int rows = -1,
@@ -56,12 +54,12 @@ namespace cv {
                   int channels = -1)
     {
         printMatInfo(name, _a);
-        
+
         Mat a = _a.getMat();
         if (-1 == rows) rows = a.rows;
         if (-1 == cols) cols = a.cols;
         if (-1 == channels) channels = a.channels();
-        
+
         for (int y = 0; y < rows; y++) {
             std::cout << "[";
             for (int x = 0; x < cols; x++) {
@@ -76,7 +74,7 @@ namespace cv {
         }
         std::cout << std::endl;
     }
-    
+
 }
 
 #endif /* opencv_hpp */

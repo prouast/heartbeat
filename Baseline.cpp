@@ -13,13 +13,13 @@
 #include <opencv2/imgproc/imgproc.hpp>
 
 bool Baseline::load(const double samplingFrequency, const double timeBase, const string baseline_path) {
-    
+
     this->samplingFrequency = samplingFrequency;
     this->timeBase = timeBase;
-    
+
     std::ifstream fileStream(baseline_path);
     string row;
-    
+
     while (true) {
         getline(fileStream, row);
         if (fileStream.bad() || fileStream.eof()) {
@@ -33,37 +33,37 @@ bool Baseline::load(const double samplingFrequency, const double timeBase, const
 }
 
 void Baseline::processFrame(Mat &frameRGB, int64_t time) {
-    
+
     // Set time
     this->time = time + 1466005435646000;
-    
+
     cout << data[dataIndex][1] << " vs " << this->time << endl;
-    
+
     // Read new values in buffer
     while (stol(data[dataIndex][1]) <= this->time) {
         bpms_ppg.push_back(atof(data[dataIndex][2].c_str()));
         bpms_ecg.push_back(atof(data[dataIndex][3].c_str()));
         dataIndex++;
     }
-    
+
     cout << bpms_ppg.size() << " di=" << dataIndex << endl;
-    
+
     if ((time - lastSamplingTime) * timeBase >= 1/samplingFrequency) {
         lastSamplingTime = time;
-        
+
         bpm_ppg = mean(bpms_ppg)(0);
         bpm_ecg = mean(bpms_ecg)(0);
-        
+
         bpms_ppg.clear();
         bpms_ecg.clear();
     }
-    
+
     // Draw PPG
     std::stringstream ss;
     ss.precision(3);
     ss << "PPG baseline: " << bpm_ppg << " bpm";
     cv::putText(frameRGB, ss.str(), Point(frameRGB.cols - 400, frameRGB.rows - 30), FONT_HERSHEY_PLAIN, 2, RED, 2);
-    
+
     // Draw PPG
     ss.str("");
     ss << "ECG baseline: " << bpm_ecg << " bpm";
