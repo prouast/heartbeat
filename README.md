@@ -24,10 +24,9 @@ If you are interested in the specifics, feel free to have a read of our publicat
 
 The following libraries are required to run Heartbeat:
 
-* [OpenCV] 
-* [ffmpeg]
+* [OpenCV]
 
-* Note: On Ubuntu 16.04, it works with opencv 3.1
+* Note: 
 
 They must be installed on the system such that headers and libraries are found on the compiler's standard search path.
 
@@ -40,7 +39,7 @@ This works with opencv 3.4.1 on macOS:
 $ g++ g++ -std=c++11 -lopencv_core -lopencv_highgui -lopencv_imgcodecs -lopencv_imgproc -lopencv_objdetect -lopencv_video -lopencv_videoio -lavcodec Heartbeat.cpp opencv.cpp RPPG.cpp Baseline.cpp -o Heartbeat
 ```
 
-Alternative compilation for Ubuntu
+Alternative compilation for Ubuntu. Works with opencv 3.1:
 ```sh
 $ g++ -std=c++11 Heartbeat.cpp opencv.cpp RPPG.cpp Baseline.cpp `pkg-config --cflags --libs opencv` -o Heartbeat
 ```
