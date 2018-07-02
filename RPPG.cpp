@@ -182,7 +182,6 @@ void RPPG::detectFace(Mat &frameGray) {
         setNearestBox(boxes);
         detectCorners(frameGray);
         updateROI();
-        updateMask(frameGray);
         faceValid = true;
 
     } else {
@@ -294,8 +293,6 @@ void RPPG::trackFace(Mat &frameGray) {
             Contour2f transformedRoiCoords;
             cv::transform(roiCoords, transformedRoiCoords, transform);
             roi = Rect(transformedRoiCoords[0], transformedRoiCoords[1]);
-
-            updateMask(frameGray);
         }
 
     } else {
@@ -307,14 +304,6 @@ void RPPG::trackFace(Mat &frameGray) {
 void RPPG::updateROI() {
     this->roi = Rect(Point(box.tl().x + 0.3 * box.width, box.tl().y + 0.1 * box.height),
                      Point(box.tl().x + 0.7 * box.width, box.tl().y + 0.25 * box.height));
-}
-
-void RPPG::updateMask(Mat &frameGray) {
-
-    cout << "Update mask" << endl;
-
-    mask = Mat::zeros(frameGray.size(), frameGray.type());
-    rectangle(mask, this->roi, WHITE, FILLED);
 }
 
 void RPPG::invalidateFace() {

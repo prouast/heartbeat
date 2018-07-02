@@ -47,7 +47,6 @@ private:
     void setNearestBox(vector<Rect> boxes);
     void detectCorners(Mat &frameGray);
     void trackFace(Mat &frameGray);
-    void updateMask(Mat &frameGray);
     void updateROI();
     void extractSignal_g();
     void extractSignal_pca();
@@ -88,9 +87,8 @@ private:
     Mat lastFrameGray;
     Contour2f corners;
 
-    // Mask
+    // ROI
     Rect box;
-    Mat1b mask;
     Rect roi;
 
     // Raw signal
