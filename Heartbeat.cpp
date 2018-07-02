@@ -179,14 +179,6 @@ int main(int argc, char * argv[]) {
         downsample = DEFAULT_DOWNSAMPLE;
     }
 
-    const string CLASSIFIER_PATH = "haarcascade_frontalface_alt.xml";
-
-    std::ifstream test(CLASSIFIER_PATH);
-    if (!test) {
-        std::cout << "Face classifier xml not found!" << std::endl;
-        exit(0);
-    }
-
     bool offlineMode = input != "";
 
     VideoCapture cap;
@@ -230,8 +222,7 @@ int main(int argc, char * argv[]) {
               WIDTH, HEIGHT, TIME_BASE, downsample,
               samplingFrequency, rescanFrequency,
               minSignalSize, maxSignalSize,
-              LOG_PATH, CLASSIFIER_PATH,
-              log, gui);
+              LOG_PATH, log, gui);
 
     // Load baseline if necessary
     Baseline baseline = Baseline();
