@@ -12,10 +12,12 @@
 #include <fstream>
 #include <string>
 #include <opencv2/objdetect/objdetect.hpp>
+#include <opencv2/dnn.hpp>
 
 #include <stdio.h>
 
 using namespace cv;
+using namespace dnn;
 using namespace std;
 
 enum rPPGAlgorithm { g, pca, xminay };
@@ -32,8 +34,7 @@ public:
               const int width, const int height, const double timeBase, const int downsample,
               const double samplingFrequency, const double rescanFrequency,
               const int minSignalSize, const int maxSignalSize,
-              const string &logPath, const string &classifierPath,
-              const bool log, const bool gui);
+              const string &logPath, const bool log, const bool gui);
 
     void processFrame(Mat &frameRGB, Mat &frameGray, int time);
 
@@ -43,7 +44,7 @@ public:
 
 private:
 
-    void detectFace(Mat &frameGray);
+    void detectFace(Mat &frameRGB, Mat &frameGray);
     void setNearestBox(vector<Rect> boxes);
     void detectCorners(Mat &frameGray);
     void trackFace(Mat &frameGray);
@@ -60,8 +61,8 @@ private:
     // The algorithm
     rPPGAlgorithm algorithm;
 
-    // The classifiers
-    CascadeClassifier classifier;
+    // The face detector
+    Net faceDetectNet;
 
     // Settings
     Size minFaceSize;
