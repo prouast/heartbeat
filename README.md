@@ -42,6 +42,23 @@ Alternative compilation for Ubuntu. Works with opencv 3.1:
 $ g++ -std=c++11 Heartbeat.cpp opencv.cpp RPPG.cpp Baseline.cpp `pkg-config --cflags --libs opencv` -o Heartbeat
 ```
 
+### Settings
+
+Several command line arguments are available:
+
+| Argument | Options | Description |
+| --- | --- | --- |
+| -i | Filepath to input video | Omit flag to use webcam |
+| -rppg | g, pca (default: g) | Specify rPPG algorithm variant - only green channel or rgb channels with pca |
+| -facedet | haar, deep (default: haar) | Specify face detection classifier - Haar cascade or deep neural network |
+| -r | Re-detection interval (default: 1 s) | Interval for face re-detection; tracking is used frame-to-frame |
+| -f | Sampling frequency (default: 1 Hz) | Frequency for heart rate estimation |
+| -max | default: 5 | Maximum size of signal sliding window |
+| -min | default: 5 | Minimum size of signal sliding window |
+| -gui | true, false (default: true) | Display the GUI |
+| -log | true, false (default: false) | Detailed logging |
+| -ds | default: 1 | If using video from file: Downsample by using every ith frame |
+
 License
 ----
 
