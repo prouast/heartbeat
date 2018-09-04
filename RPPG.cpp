@@ -28,13 +28,16 @@ using namespace std;
 #define QUALITY_LEVEL 0.01
 #define MIN_DISTANCE 25
 
-bool RPPG::load(const rPPGAlgorithm algorithm,
+bool RPPG::load(const rPPGAlgorithm rPPGAlg, const faceDetAlgorithm faceDetAlg,
                 const int width, const int height, const double timeBase, const int downsample,
                 const double samplingFrequency, const double rescanFrequency,
                 const int minSignalSize, const int maxSignalSize,
-                const string &logPath, const bool log, const bool gui) {
+                const string &logPath, const string &haarPath,
+                const string &dnnProtoPath, const string &dnnModelPath,
+                const bool log, const bool gui) {
 
-    this->algorithm = algorithm;
+    this->rPPGAlg = rPPGAlg;
+    this->faceDetAlg = faceDetAlg;
     this->guiMode = gui;
     this->lastSamplingTime = 0;
     this->logMode = log;
@@ -46,12 +49,19 @@ bool RPPG::load(const rPPGAlgorithm algorithm,
     this->samplingFrequency = samplingFrequency;
     this->timeBase = timeBase;
 
-    // Load face detector
-    faceDetectNet = readNetFromCaffe("opencv/deploy.prototxt", "opencv/res10_300x300_ssd_iter_140000.caffemodel");
+    // Load classifier
+    switch (faceDetAlg) {
+      case haar:
+        haarClassifier.load(haarPath);
+        break;
+      case deep:
+        dnnClassifier = readNetFromCaffe(dnnProtoPath, dnnModelPath);
+        break;
+    }
 
     // Setting up logfilepath
     ostringstream path_1;
-    path_1 << logPath << "_a=" << algorithm << "_min=" << minSignalSize << "_max=" << maxSignalSize << "_ds=" << downsample;
+    path_1 << logPath << "_rppg=" << rPPGAlg << "_facedet=" << faceDetAlg << "_min=" << minSignalSize << "_max=" << maxSignalSize << "_ds=" << downsample;
     this->logfilepath = path_1.str();
 
     // Logging bpm according to sampling frequency
@@ -138,7 +148,7 @@ void RPPG::processFrame(Mat &frameRGB, Mat &frameGray, int time) {
         if (s.rows >= fps * minSignalSize) {
 
             // Filtering
-            switch (algorithm) {
+            switch (rPPGAlg) {
                 case g:
                     extractSignal_g();
                     break;
@@ -170,31 +180,37 @@ void RPPG::processFrame(Mat &frameRGB, Mat &frameGray, int time) {
 void RPPG::detectFace(Mat &frameRGB, Mat &frameGray) {
 
     cout << "Scanning for faces…" << endl;
-
-    // Detect faces with DNN
-    Mat resize300;
-    cv::resize(frameRGB, resize300, Size(300, 300));
-    Mat blob = blobFromImage(resize300, 1.0, Size(300, 300), Scalar(104.0, 177.0, 123.0));
-    faceDetectNet.setInput(blob);
-    Mat detection = faceDetectNet.forward();
-    Mat detectionMat(detection.size[2], detection.size[3], CV_32F, detection.ptr<float>());
-    float confidenceThreshold = 0.5;
     vector<Rect> boxes = {};
 
-    for (int i = 0; i < detectionMat.rows; i++) {
-        float confidence = detectionMat.at<float>(i, 2);
+    switch (faceDetAlg) {
+      case haar:
+        // Detect faces with Haar classifier
+        haarClassifier.detectMultiScale(frameGray, boxes, 1.1, 2, CV_HAAR_SCALE_IMAGE, minFaceSize);
+        break;
+      case deep:
+        // Detect faces with DNN
+        Mat resize300;
+        cv::resize(frameRGB, resize300, Size(300, 300));
+        Mat blob = blobFromImage(resize300, 1.0, Size(300, 300), Scalar(104.0, 177.0, 123.0));
+        dnnClassifier.setInput(blob);
+        Mat detection = dnnClassifier.forward();
+        Mat detectionMat(detection.size[2], detection.size[3], CV_32F, detection.ptr<float>());
+        float confidenceThreshold = 0.5;
 
-        if (confidence > confidenceThreshold) {
+        for (int i = 0; i < detectionMat.rows; i++) {
+          float confidence = detectionMat.at<float>(i, 2);
+          if (confidence > confidenceThreshold) {
             int xLeftBottom = static_cast<int>(detectionMat.at<float>(i, 3) * frameRGB.cols);
             int yLeftBottom = static_cast<int>(detectionMat.at<float>(i, 4) * frameRGB.rows);
             int xRightTop = static_cast<int>(detectionMat.at<float>(i, 5) * frameRGB.cols);
             int yRightTop = static_cast<int>(detectionMat.at<float>(i, 6) * frameRGB.rows);
-
             Rect object((int)xLeftBottom, (int)yLeftBottom,
                         (int)(xRightTop - xLeftBottom),
                         (int)(yRightTop - yLeftBottom));
             boxes.push_back(object);
+          }
         }
+        break;
     }
 
     if (boxes.size() > 0) {

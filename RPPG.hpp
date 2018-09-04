@@ -21,6 +21,7 @@ using namespace dnn;
 using namespace std;
 
 enum rPPGAlgorithm { g, pca, xminay };
+enum faceDetAlgorithm { haar, deep };
 
 class RPPG {
 
@@ -30,11 +31,13 @@ public:
     RPPG() {;}
 
     // Load Settings
-    bool load(const rPPGAlgorithm algorithm,
+    bool load(const rPPGAlgorithm rPPGAlg, const faceDetAlgorithm faceDetAlg,
               const int width, const int height, const double timeBase, const int downsample,
               const double samplingFrequency, const double rescanFrequency,
               const int minSignalSize, const int maxSignalSize,
-              const string &logPath, const bool log, const bool gui);
+              const string &logPath, const string &haarPath,
+              const string &dnnProtoPath, const string &dnnModelPath,
+              const bool log, const bool gui);
 
     void processFrame(Mat &frameRGB, Mat &frameGray, int time);
 
@@ -59,10 +62,12 @@ private:
     void log();
 
     // The algorithm
-    rPPGAlgorithm algorithm;
+    rPPGAlgorithm rPPGAlg;
 
-    // The face detector
-    Net faceDetectNet;
+    // The classifier
+    faceDetAlgorithm faceDetAlg;
+    CascadeClassifier haarClassifier;
+    Net dnnClassifier;
 
     // Settings
     Size minFaceSize;

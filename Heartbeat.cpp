@@ -15,12 +15,17 @@
 #include "opencv.hpp"
 #include "Baseline.hpp"
 
-#define DEFAULT_ALGORITHM "g"
+#define DEFAULT_RPPG_ALGORITHM "g"
+#define DEFAULT_FACEDET_ALGORITHM "haar"
 #define DEFAULT_RESCAN_FREQUENCY 1
 #define DEFAULT_SAMPLING_FREQUENCY 1
 #define DEFAULT_MIN_SIGNAL_SIZE 5
 #define DEFAULT_MAX_SIGNAL_SIZE 5
 #define DEFAULT_DOWNSAMPLE 1 // x means only every xth frame is used
+
+#define HAAR_CLASSIFIER_PATH "haarcascade_frontalface_alt.xml"
+#define DNN_PROTO_PATH "opencv/deploy.prototxt"
+#define DNN_MODEL_PATH "opencv/res10_300x300_ssd_iter_140000.caffemodel"
 
 using namespace cv;
 
@@ -79,13 +84,24 @@ bool to_bool(string s) {
     return result;
 }
 
-rPPGAlgorithm to_algorithm(string s) {
+rPPGAlgorithm to_rppgAlgorithm(string s) {
     rPPGAlgorithm result;
     if (s == "g") result = g;
     else if (s == "pca") result = pca;
     else if (s == "xminay") result = xminay;
     else {
-        std::cout << "Please specify valid algorithm (g, pca, xminay)!" << std::endl;
+        std::cout << "Please specify valid rPPG algorithm (g, pca, xminay)!" << std::endl;
+        exit(0);
+    }
+    return result;
+}
+
+faceDetAlgorithm to_faceDetAlgorithm(string s) {
+    faceDetAlgorithm result;
+    if (s == "haar") result = haar;
+    else if (s == "deep") result = deep;
+    else {
+        std::cout << "Please specify valid face detection algorithm (haar, deep)!" << std::endl;
         exit(0);
     }
     return result;
@@ -98,15 +114,26 @@ int main(int argc, char * argv[]) {
     string input = cmd_line.get_arg("-i"); // Filepath for offline mode
 
     // algorithm setting
-    rPPGAlgorithm algorithm;
-    string algorithmString = cmd_line.get_arg("-a");
-    if (algorithmString != "") {
-        algorithm = to_algorithm(algorithmString);
+    rPPGAlgorithm rPPGAlg;
+    string rppgAlgString = cmd_line.get_arg("-rppg");
+    if (rppgAlgString != "") {
+        rPPGAlg = to_rppgAlgorithm(rppgAlgString);
     } else {
-        algorithm = to_algorithm(DEFAULT_ALGORITHM);
+        rPPGAlg = to_rppgAlgorithm(DEFAULT_RPPG_ALGORITHM);
     }
 
-    cout << "Using algorithm " << algorithm << "." << endl;
+    cout << "Using rPPG algorithm " << rPPGAlg << "." << endl;
+
+    // face detection algorithm setting
+    faceDetAlgorithm faceDetAlg;
+    string faceDetAlgString = cmd_line.get_arg("-facedet");
+    if (faceDetAlgString != "") {
+        faceDetAlg = to_faceDetAlgorithm(faceDetAlgString);
+    } else {
+        faceDetAlg = to_faceDetAlgorithm(DEFAULT_FACEDET_ALGORITHM);
+    }
+
+    cout << "Using face detection algorithm " << faceDetAlg << "." << endl;
 
     // rescanFrequency setting
     double rescanFrequency;
@@ -179,6 +206,24 @@ int main(int argc, char * argv[]) {
         downsample = DEFAULT_DOWNSAMPLE;
     }
 
+    std::ifstream test1(HAAR_CLASSIFIER_PATH);
+    if (!test1) {
+        std::cout << "Face classifier xml not found!" << std::endl;
+        exit(0);
+    }
+
+    std::ifstream test2(DNN_PROTO_PATH);
+    if (!test2) {
+        std::cout << "DNN proto file not found!" << std::endl;
+        exit(0);
+    }
+
+    std::ifstream test3(DNN_MODEL_PATH);
+    if (!test3) {
+        std::cout << "DNN model file not found!" << std::endl;
+        exit(0);
+    }
+
     bool offlineMode = input != "";
 
     VideoCapture cap;
@@ -214,15 +259,17 @@ int main(int argc, char * argv[]) {
     cout << "TIME BASE: " << TIME_BASE << endl;
 
     std::ostringstream window_title;
-    window_title << title << " - " << WIDTH << "x" << HEIGHT << " -a " << algorithm << " -r " << rescanFrequency << " -f " << samplingFrequency << " -min " << minSignalSize << " -max " << maxSignalSize << " -ds " << downsample;
+    window_title << title << " - " << WIDTH << "x" << HEIGHT << " -rppg " << rPPGAlg << " -facedet " << faceDetAlg << " -r " << rescanFrequency << " -f " << samplingFrequency << " -min " << minSignalSize << " -max " << maxSignalSize << " -ds " << downsample;
 
     // Set up rPPG
     RPPG rppg = RPPG();
-    rppg.load(algorithm,
+    rppg.load(rPPGAlg, faceDetAlg,
               WIDTH, HEIGHT, TIME_BASE, downsample,
               samplingFrequency, rescanFrequency,
               minSignalSize, maxSignalSize,
-              LOG_PATH, log, gui);
+              LOG_PATH, HAAR_CLASSIFIER_PATH,
+              DNN_PROTO_PATH, DNN_MODEL_PATH,
+              log, gui);
 
     // Load baseline if necessary
     Baseline baseline = Baseline();
