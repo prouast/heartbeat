@@ -34,7 +34,7 @@ Compile the source code for your system, providing a number of required linker f
 This works with opencv 3.4.1 on macOS:
 
 ```sh
-$ g++ -std=c++11 -lopencv_core -lopencv_dnn -lopencv_highgui -lopencv_imgcodecs -lopencv_imgproc -lopencv_objdetect -lopencv_video -lopencv_videoio -lavcodec Heartbeat.cpp opencv.cpp RPPG.cpp Baseline.cpp -o Heartbeat
+$ g++ -std=c++11 -lopencv_core -lopencv_dnn -lopencv_highgui -lopencv_imgcodecs -lopencv_imgproc -lopencv_objdetect -lopencv_video -lopencv_videoio Heartbeat.cpp opencv.cpp RPPG.cpp Baseline.cpp -o Heartbeat
 ```
 
 Alternative compilation for Ubuntu. Works with opencv 3.1:
