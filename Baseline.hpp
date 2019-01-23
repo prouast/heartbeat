@@ -11,7 +11,7 @@
 
 #include <stdio.h>
 #include <string>
-#include <opencv2/core/core.hpp>
+#include <opencv2/core.hpp>
 
 using namespace std;
 using namespace cv;
@@ -23,33 +23,33 @@ enum class CSVState {
 };
 
 class Baseline {
-    
+
 public:
-    
+
     // Constructor
     Baseline() {;}
-    
+
     bool load(const double samplingFrequency, const double timeBase, const string baseline_path);
-    
+
     // Process a frame
     void processFrame(Mat &frameRGB, int64_t time);
-    
+
 private:
-    
+
     vector<string> readCSVRow(const string &row);
-    
+
     // Settings
     double samplingFrequency;
     double timeBase;
-    
+
     // Data
     vector<vector<string>> data;
     int dataIndex = 2;
-    
+
     // State variables
     int64_t time;
     int64_t lastSamplingTime = 0;
-    
+
     // Estimation
     double bpm_ppg = 0.0;
     double bpm_ecg = 0.0;

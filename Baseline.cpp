@@ -10,7 +10,7 @@
 
 #include <fstream>
 #include "opencv.hpp"
-#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/imgproc.hpp>
 
 bool Baseline::load(const double samplingFrequency, const double timeBase, const string baseline_path) {
 

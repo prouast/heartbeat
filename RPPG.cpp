@@ -8,10 +8,10 @@
 
 #include "RPPG.hpp"
 
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/core/core.hpp>
-#include <opencv2/video/video.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/core.hpp>
+#include <opencv2/video.hpp>
 
 #include "opencv.hpp"
 
@@ -185,7 +185,7 @@ void RPPG::detectFace(Mat &frameRGB, Mat &frameGray) {
     switch (faceDetAlg) {
       case haar:
         // Detect faces with Haar classifier
-        haarClassifier.detectMultiScale(frameGray, boxes, 1.1, 2, CV_HAAR_SCALE_IMAGE, minFaceSize);
+        haarClassifier.detectMultiScale(frameGray, boxes, 1.1, 2, CASCADE_SCALE_IMAGE, minFaceSize);
         break;
       case deep:
         // Detect faces with DNN

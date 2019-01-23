@@ -11,7 +11,7 @@
 
 #include <fstream>
 #include <string>
-#include <opencv2/objdetect/objdetect.hpp>
+#include <opencv2/objdetect.hpp>
 #include <opencv2/dnn.hpp>
 
 #include <stdio.h>

@@ -9,9 +9,9 @@
 #include "Heartbeat.hpp"
 
 #include <opencv2/imgcodecs.hpp>
-#include <opencv2/videoio/videoio.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/videoio.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
 #include "opencv.hpp"
 #include "Baseline.hpp"
 
@@ -291,11 +291,11 @@ int main(int argc, char * argv[]) {
             break;
 
         // Generate grayframe
-        cvtColor(frameRGB, frameGray, CV_BGR2GRAY);
+        cvtColor(frameRGB, frameGray, COLOR_BGR2GRAY);
         equalizeHist(frameGray, frameGray);
 
         int time;
-        if (offlineMode) time = (int)cap.get(CV_CAP_PROP_POS_MSEC);
+        if (offlineMode) time = (int)cap.get(CAP_PROP_POS_MSEC);
         else time = (cv::getTickCount()*1000.0)/cv::getTickFrequency();
 
         if (i % downsample == 0) {

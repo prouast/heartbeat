@@ -9,8 +9,8 @@
 #include "opencv.hpp"
 #include <limits>
 
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
 
 using namespace std;
 
@@ -212,7 +212,7 @@ namespace cv {
         Mat outputPlanes[2];
         split(a, outputPlanes);
         Mat output = Mat(a.rows, 1, a.type());
-        normalize(outputPlanes[0], output, 0, 1, CV_MINMAX);
+        normalize(outputPlanes[0], output, 0, 1, NORM_MINMAX);
         output.copyTo(_b);
     }
 
@@ -222,7 +222,7 @@ namespace cv {
         CV_Assert(a.type() == CV_64F);
 
         // Perform PCA
-        cv::PCA pca(a, cv::Mat(), CV_PCA_DATA_AS_ROW);
+        cv::PCA pca(a, cv::Mat(), PCA::DATA_AS_ROW);
 
         // Calculate PCA components
         cv::Mat pc = a * pca.eigenvectors.t();

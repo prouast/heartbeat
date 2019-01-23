@@ -12,7 +12,7 @@
 #include <stdio.h>
 
 #include <iostream>
-#include <opencv2/core/core.hpp>
+#include <opencv2/core.hpp>
 
 namespace cv {
 
@@ -29,7 +29,7 @@ namespace cv {
     double getFps(cv::Mat &t, const double timeBase);
     void push(cv::Mat &m);
     void plot(cv::Mat &mat);
-    
+
     /* FILTERS */
 
     void normalization(cv::InputArray _a, cv::OutputArray _b);
