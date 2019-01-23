@@ -32,7 +32,7 @@ They must be installed on the system such that headers and libraries are found o
 
 UPDATE: With current changes in Mojave, compiling via g++ was complicated. [After following this advice](https://stackoverflow.com/questions/52509602/cant-compile-c-program-on-a-mac-after-upgrade-to-mojave), the following works for me with macOS 10.14.2 and opencv 4.0.1 installed via Homebrew:
 
-```sh`
+```
 g++ -std=c++11 -I/usr/local/Cellar/opencv/4.0.1/include/opencv4 -lopencv_core -lopencv_dnn -lopencv_highgui -lopencv_imgcodecs -lopencv_imgproc -lopencv_objdetect -lopencv_video -lopencv_videoio Heartbeat.cpp opencv.cpp RPPG.cpp Baseline.cpp -o Heartbeat
 ```
 
