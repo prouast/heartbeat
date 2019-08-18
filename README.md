@@ -1,7 +1,5 @@
 # Heartbeat: Measuring heart rate using remote photoplethysmography (rPPG)
 
-[![N|Solid](https://s12.postimg.org/gh7ymb02h/Logo.jpg)](https://github.com/prouast/heartbeat)
-
 This is a simple implementation of rPPG, a way to measure heart rate without skin contact. It uses a video recording or live feed of the face to analyse subtle changes in skin color.
 
 Here's how it works:
@@ -10,10 +8,12 @@ Here's how it works:
   - Signal series is obtained by determining the facial color in every frame
   - Heart rate is estimated using frequency analysis and filtering of the series
 
-If you are interested in the specifics, feel free to have a read of our publications on the topic:
+If you are interested in the specifics, feel free to have a read of my publications on the topic:
   - [Remote Photoplethysmography: Evaluation of Contactless Heart Rate Measurement in an Information Systems Setting][aitic]
   - [Using Contactless Heart Rate Measurements for Real-Time Assessment of Affective States][gmunden]
   - [Remote heart rate measurement using low-cost RGB face video: A technical literature review][fcs]
+
+See also my minimal [JavaScript implementation](https://github.com/prouast/heartbeat-js) and [Browser Demo](https://prouast.github.io/heartbeat-js/).
 
 ### Demo
 
