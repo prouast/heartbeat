@@ -30,25 +30,25 @@ They must be installed on the system such that headers and libraries are found o
 
 ### Installation
 
-UPDATE: With current changes in Mojave, compiling via g++ was complicated. [After following this advice](https://stackoverflow.com/questions/52509602/cant-compile-c-program-on-a-mac-after-upgrade-to-mojave), the following works for me with macOS 10.14.2 and opencv 4.0.1 installed via Homebrew:
-
-```
-g++ -std=c++11 -I/usr/local/Cellar/opencv/4.0.1/include/opencv4 -lopencv_core -lopencv_dnn -lopencv_highgui -lopencv_imgcodecs -lopencv_imgproc -lopencv_objdetect -lopencv_video -lopencv_videoio Heartbeat.cpp opencv.cpp RPPG.cpp Baseline.cpp -o Heartbeat
-```
-
-Compile the source code for your system, providing a number of required linker flags.
-This works with opencv 3.4.1 on macOS:
+For building a Makefile is available that works on macOS:
 
 ```sh
-$ g++ -std=c++11 -lopencv_core -lopencv_dnn -lopencv_highgui -lopencv_imgcodecs -lopencv_imgproc -lopencv_objdetect -lopencv_video -lopencv_videoio Heartbeat.cpp opencv.cpp RPPG.cpp Baseline.cpp -o Heartbeat
+$ make
 ```
 
 Alternative compilation for Ubuntu. Works with opencv 3.1:
+
 ```sh
 $ g++ -std=c++11 Heartbeat.cpp opencv.cpp RPPG.cpp Baseline.cpp `pkg-config --cflags --libs opencv` -o Heartbeat
 ```
 
 ### Settings
+
+After building, the app can be run via
+
+```
+$ ./Heartbeat
+```
 
 Several command line arguments are available:
 
