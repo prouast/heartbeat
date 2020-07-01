@@ -39,7 +39,7 @@ $ make
 Alternative compilation for Ubuntu. Works with opencv 3.1:
 
 ```sh
-$ g++ -std=c++11 Heartbeat.cpp opencv.cpp RPPG.cpp Baseline.cpp `pkg-config --cflags --libs opencv` -o Heartbeat
+$ g++ -std=c++11 Heartbeat.cpp opencv.cpp RPPG.cpp `pkg-config --cflags --libs opencv` -o Heartbeat
 ```
 
 ### Settings

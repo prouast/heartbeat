@@ -13,7 +13,6 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include "opencv.hpp"
-#include "Baseline.hpp"
 
 #define DEFAULT_RPPG_ALGORITHM "g"
 #define DEFAULT_FACEDET_ALGORITHM "haar"
@@ -171,9 +170,6 @@ int main(int argc, char * argv[]) {
         minSignalSize = DEFAULT_MIN_SIGNAL_SIZE;
     }
 
-    // visualize baseline setting
-    string baseline_input = cmd_line.get_arg("-baseline");
-
     if (minSignalSize > maxSignalSize) {
         std::cout << "Max signal size must be greater or equal min signal size!" << std::endl;
         exit(0);
@@ -271,12 +267,6 @@ int main(int argc, char * argv[]) {
               DNN_PROTO_PATH, DNN_MODEL_PATH,
               log, gui);
 
-    // Load baseline if necessary
-    Baseline baseline = Baseline();
-    if (baseline_input != "") {
-        baseline.load(1, 0.000001, baseline_input);
-    }
-
     cout << "START ALGORITHM" << endl;
 
     int i = 0;
@@ -302,10 +292,6 @@ int main(int argc, char * argv[]) {
             rppg.processFrame(frameRGB, frameGray, time);
         } else {
             cout << "SKIPPING FRAME TO DOWNSAMPLE!" << endl;
-        }
-
-        if (baseline_input != "") {
-            baseline.processFrame(frameRGB, time);
         }
 
         if (gui) {
