@@ -72,7 +72,7 @@ GPL-3.0
 
 [//]: # (These are reference links used in the body of this note and get stripped out when the markdown processor does its job. There is no need to format nicely because it shouldn't be seen. Thanks SO - http://stackoverflow.com/questions/4823468/store-comments-in-markdown-syntax)
 
-   [aitic]: <http://air.newcastle.edu.au/AITIC_files/Paper_40.pdf>
+   [aitic]: <https://www.rouast.com/pdf/rouast2016remote_b.pdf>
    [fcs]: <https://www.researchgate.net/profile/Raymond_Chiong/publication/306285292_Remote_heart_rate_measurement_using_low-cost_RGB_face_video_A_technical_literature_review/links/58098ac808ae1c98c252637d.pdf>
    [gmunden]: <http://link.springer.com/chapter/10.1007/978-3-319-41402-7_20>
    [OpenCV]: <http://opencv.org/downloads.html>
