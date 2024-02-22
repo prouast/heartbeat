@@ -1,5 +1,7 @@
 # Heartbeat: Measuring heart rate using remote photoplethysmography (rPPG)
 
+**News: Try out [VitalLens](https://apps.apple.com/us/app/vitallens/id6472757649), my new free iOS app implementing a modern rPPG model based on AI. Find out more at [https://www.rouast.com/vitallens](https://www.rouast.com/vitallens/).**
+
 This is a simple implementation of rPPG, a way to measure heart rate without skin contact. It uses a video recording or live feed of the face to analyse subtle changes in skin color.
 
 Here's how it works:
