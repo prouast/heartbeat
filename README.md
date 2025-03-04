@@ -1,6 +1,14 @@
 # Heartbeat: Measuring heart rate using remote photoplethysmography (rPPG)
 
-**News: Try out [VitalLens](https://apps.apple.com/us/app/vitallens/id6472757649), my new free iOS app implementing a modern rPPG model based on AI. We also have an [API](https://www.rouast.com/api/) with a [Python Client](https://github.com/Rouast-Labs/vitallens-python) which uses the same AI model. Find out more at [https://www.rouast.com/vitallens](https://www.rouast.com/vitallens/) and [https://www.rouast.com/api](https://www.rouast.com/api/).**
+Looking for more powerful and up-to-date rPPG tools?  
+Check out our latest libraries and apps!
+
+| 📌 Tool | ⚡ Features | 🔗 Get Started |
+|---------|-----------|---------------|
+| **[Python Library](https://github.com/Rouast-Labs/vitallens-python)** | G, POS, CHROM, VitalLens API | [GitHub](https://github.com/Rouast-Labs/vitallens-python) |
+| **[JavaScript Library](https://github.com/Rouast-Labs/vitallens.js)** | G, POS, CHROM, VitalLens API | [GitHub](https://github.com/Rouast-Labs/vitallens.js) |
+| **[iOS App](https://apps.apple.com/us/app/vitallens/id6472757649)** | Live HR + RR Estimation | [App Store](https://apps.apple.com/us/app/vitallens/id6472757649) |
+| **[Rouast Labs](https://rouast.com/api)** | More about our research & tech | [Website](https://rouast.com) |
 
 This is a simple implementation of rPPG, a way to measure heart rate without skin contact. It uses a video recording or live feed of the face to analyse subtle changes in skin color.
 
