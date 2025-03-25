@@ -90,7 +90,7 @@ void RPPG::processFrame(Mat &frameRGB, Mat &frameGray, int time) {
 
     // Set time
     this->time = time;
-
+ cout<<"time "<<time<<endl;
     if (!faceValid) {
 
         cout << "Not valid, finding a new face" << endl;
@@ -109,9 +109,11 @@ void RPPG::processFrame(Mat &frameRGB, Mat &frameGray, int time) {
     } else {
 
         cout << "Tracking face" << endl;
-
+// cout<<"corners.size() "<<corners.size()<<endl;
         trackFace(frameGray);
     }
+    
+//    cout<<"frameGray() "<<frameGray.rows<<" , "<<frameGray.cols<<endl;
 
     if (faceValid) {
 
@@ -124,11 +126,12 @@ void RPPG::processFrame(Mat &frameRGB, Mat &frameGray, int time) {
             push(t);
             push(re);
         }
-
+cout<<"s.rows "<<s.rows<<" t.rows "<<t.rows<<" re.rows "<<re.rows<<endl;
         assert(s.rows == t.rows && s.rows == re.rows);
 
         // New values
         Scalar means = mean(frameRGB, mask);
+//         cout<<"means "<<means<<endl;
         // Add new values to raw signal buffer
         double values[] = {means(0), means(1), means(2)};
         s.push_back(Mat(1, 3, CV_64F, values));
@@ -143,10 +146,11 @@ void RPPG::processFrame(Mat &frameRGB, Mat &frameGray, int time) {
         // Update band spectrum limits
         low = (int)(s.rows * LOW_BPM / SEC_PER_MIN / fps);
         high = (int)(s.rows * HIGH_BPM / SEC_PER_MIN / fps) + 1;
+//         cout<<"band spectrum limits "<<low<<" , "<<high;
 
         // If valid signal is large enough: estimate
         if (s.rows >= fps * minSignalSize) {
-
+// cout<<"s.rows >= fps * minSignalSize";
             // Filtering
             switch (rPPGAlg) {
                 case g:
@@ -287,6 +291,12 @@ void RPPG::trackFace(Mat &frameGray) {
     vector<uchar> cornersFound_0;
     Mat err;
 
+//    cout<<"frameGray() "<<frameGray.rows<<" , "<<frameGray.cols<<endl;
+//    cout<<"frameGray.type() "<<frameGray.type();
+//    
+//    cout<<"lastFrameGray() "<<lastFrameGray.rows<<" , "<<lastFrameGray.cols<<" , "<<lastFrameGray.type()<<endl;
+
+    
     // Track face features with Kanade-Lucas-Tomasi (KLT) algorithm
     calcOpticalFlowPyrLK(lastFrameGray, frameGray, corners, corners_1, cornersFound_1, err);
 
@@ -345,6 +355,8 @@ void RPPG::trackFace(Mat &frameGray) {
 void RPPG::updateROI() {
     this->roi = Rect(Point(box.tl().x + 0.3 * box.width, box.tl().y + 0.1 * box.height),
                      Point(box.tl().x + 0.7 * box.width, box.tl().y + 0.25 * box.height));
+    
+//     cout<<"updateROI() roi "<<roi<<endl;
 }
 
 void RPPG::updateMask(Mat &frameGray) {
@@ -366,11 +378,15 @@ void RPPG::invalidateFace() {
 }
 
 void RPPG::extractSignal_g() {
-
+    cout<<"extractSignal_g()"<<endl;
+    
     // Denoise
     Mat s_den = Mat(s.rows, 1, CV_64F);
+//    cout<<"D s.rows "<<s.rows<<" s_den "<<s_den<<endl;
+    
     denoise(s.col(1), re, s_den);
-
+//    cout<<"E s.rows "<<s.rows<<" s_den "<<s_den<<endl;
+    
     // Normalise
     normalization(s_den, s_den);
 
@@ -601,7 +617,7 @@ void RPPG::draw(cv::Mat &frameRGB) {
     rectangle(frameRGB, roi, GREEN);
 
     // Draw bounding box
-    rectangle(frameRGB, box, RED);
+    rectangle(frameRGB, box, WHITE);
 
     // Draw signal
     if (!s_f.empty() && !powerSpectrum.empty()) {
@@ -610,6 +626,9 @@ void RPPG::draw(cv::Mat &frameRGB) {
         double displayHeight = box.height/2.0;
         double displayWidth = box.width*0.8;
 
+        vector<ld> inputY;
+        inputY.push_back(s_f.at<double>(0, 0));
+        
         // Draw signal
         double vmin, vmax;
         Point pmin, pmax;
@@ -624,8 +643,31 @@ void RPPG::draw(cv::Mat &frameRGB) {
             p2 = Point(drawAreaTlX + i * widthMult, drawAreaTlY + (vmax - s_f.at<double>(i, 0))*heightMult);
             line(frameRGB, p1, p2, RED, 2);
             p1 = p2;
+            
+             inputY.push_back(s_f.at<double>(i, 0));
         }
 
+        //draw zScore peak data
+        int lag = 5; //30;
+        ld threshold = 3.5; //5.0;
+        ld influence = 0.5; //0.0;
+        unordered_map<string, vector<ld>> output = z_score_thresholding(inputY, lag, threshold, influence);
+        cout << output["signals"] << endl;
+        
+        cv::Point p3(drawAreaTlX, drawAreaTlY + (vmax - output["signals"][0])*heightMult);
+        cv::Point p4;
+        for (int i = 1; i < output["signals"].size(); i++) {
+            p4 = cv::Point(drawAreaTlX + i * widthMult, drawAreaTlY + (vmax - output["signals"][i])*heightMult);
+            line(frameRGB, p3, p4, WHITE, 2);
+            p3 = p4;
+        }
+        
+        if(output["signals"][output["signals"].size()-1] == 1){
+            circle( frameRGB, cv::Point(50,50),30,Scalar( 0, 0, 255 ),FILLED,LINE_8 );
+        } else{
+            circle( frameRGB, cv::Point(50,50),30,Scalar( 0, 0, 255 ),1,LINE_8 );
+        }
+        
         // Draw powerSpectrum
         const int total = s_f.rows;
         Mat bandMask = Mat::zeros(s_f.size(), CV_8U);
@@ -663,4 +705,48 @@ void RPPG::draw(cv::Mat &frameRGB) {
         line(frameRGB, Point(corners[i].x-5,corners[i].y), Point(corners[i].x+5,corners[i].y), GREEN, 1);
         line(frameRGB, Point(corners[i].x,corners[i].y-5), Point(corners[i].x,corners[i].y+5), GREEN, 1);
     }
+}
+
+/**
+ * This is the implementation of the Smoothed Z-Score Algorithm.
+ * This is direction translation of https://stackoverflow.com/a/22640362/1461896.
+ *
+ * @param input - input signal
+ * @param lag - the lag of the moving window
+ * @param threshold - the z-score at which the algorithm signals
+ * @param influence - the influence (between 0 and 1) of new signals on the mean and standard deviation
+ * @return a hashmap containing the filtered signal and corresponding mean and standard deviation.
+ */
+//https://stackoverflow.com/questions/22583391/peak-signal-detection-in-realtime-timeseries-data/46998001#46998001
+unordered_map<string, vector<ld>>  RPPG::z_score_thresholding(vector<ld> input, int lag, ld threshold, ld influence) {
+    unordered_map<string, vector<ld>> output;
+    
+    uint n = (uint) input.size();
+    vector<ld> signals(input.size());
+    vector<ld> filtered_input(input.begin(), input.end());
+    vector<ld> filtered_mean(input.size());
+    vector<ld> filtered_stddev(input.size());
+    
+    VectorStats lag_subvector_stats(input.begin(), input.begin() + lag);
+    filtered_mean[lag - 1] = lag_subvector_stats.mean();
+    filtered_stddev[lag - 1] = lag_subvector_stats.standard_deviation();
+    
+    for (int i = lag; i < n; i++) {
+        if (abs(input[i] - filtered_mean[i - 1]) > threshold * filtered_stddev[i - 1]) {
+            signals[i] = (input[i] > filtered_mean[i - 1]) ? 1.0 : -1.0;
+            filtered_input[i] = influence * input[i] + (1 - influence) * filtered_input[i - 1];
+        } else {
+            signals[i] = 0.0;
+            filtered_input[i] = input[i];
+        }
+        VectorStats lag_subvector_stats(filtered_input.begin() + (i - lag), filtered_input.begin() + i);
+        filtered_mean[i] = lag_subvector_stats.mean();
+        filtered_stddev[i] = lag_subvector_stats.standard_deviation();
+    }
+    
+    output["signals"] = signals;
+    output["filtered_mean"] = filtered_mean;
+    output["filtered_stddev"] = filtered_stddev;
+    
+    return output;
 }

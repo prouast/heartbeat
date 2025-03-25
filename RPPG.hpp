@@ -16,6 +16,84 @@
 
 #include <stdio.h>
 
+//---added zScore code
+#include <vector>
+#include <algorithm>
+#include <unordered_map>
+#include <cmath>
+#include <iterator>
+#include <numeric>
+
+typedef long double ld;
+typedef unsigned int uint;
+typedef std::vector<ld>::iterator vec_iter_ld;
+
+/**
+ * Overriding the ostream operator for pretty printing vectors.
+ */
+template<typename T>
+std::ostream &operator<<(std::ostream &os, std::vector<T> vec) {
+    os << "[";
+    if (vec.size() != 0) {
+        std::copy(vec.begin(), vec.end() - 1, std::ostream_iterator<T>(os, " "));
+        os << vec.back();
+    }
+    os << "]";
+    return os;
+}
+
+/**
+ * This class calculates mean and standard deviation of a subvector.
+ * This is basically stats computation of a subvector of a window size qual to "lag".
+ */
+
+class VectorStats {
+public:
+    /**
+     * Constructor for VectorStats class.
+     *
+     * @param start - This is the iterator position of the start of the window,
+     * @param end   - This is the iterator position of the end of the window,
+     */
+    VectorStats(vec_iter_ld start, vec_iter_ld end) {
+        this->start = start;
+        this->end = end;
+        this->compute();
+    }
+    
+    /**
+     * This method calculates the mean and standard deviation using STL function.
+     * This is the Two-Pass implementation of the Mean & Variance calculation.
+     */
+    void compute() {
+        ld sum = std::accumulate(start, end, 0.0);
+        uint slice_size = std::distance(start, end);
+        ld mean = sum / slice_size;
+        std::vector<ld> diff(slice_size);
+        std::transform(start, end, diff.begin(), [mean](ld x) { return x - mean; });
+        ld sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
+        ld std_dev = std::sqrt(sq_sum / slice_size);
+        
+        this->m1 = mean;
+        this->m2 = std_dev;
+    }
+    
+    ld mean() {
+        return m1;
+    }
+    
+    ld standard_deviation() {
+        return m2;
+    }
+    
+private:
+    vec_iter_ld start;
+    vec_iter_ld end;
+    ld m1;
+    ld m2;
+};
+
+//----original RPPG code
 using namespace cv;
 using namespace dnn;
 using namespace std;
@@ -44,6 +122,8 @@ public:
     void exit();
 
     typedef vector<Point2f> Contour2f;
+
+    unordered_map<string, vector<ld>>  z_score_thresholding(vector<ld> input, int lag, ld threshold, ld influence);
 
 private:
 
@@ -86,7 +166,7 @@ private:
     int64_t lastSamplingTime;
     int64_t lastScanTime;
     int low;
-    int64_t now;
+//    int64_t now;
     bool faceValid;
     bool rescanFlag;
 
