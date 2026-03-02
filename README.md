@@ -3,10 +3,11 @@
 Looking for more powerful and up-to-date rPPG tools?  
 Check out our latest libraries and apps!
 
-| 📌 Tool | ⚡ Features | 🔗 Get Started |
-|---------|-----------|---------------|
-| **[Python Library](https://github.com/Rouast-Labs/vitallens-python)** | G, POS, CHROM, VitalLens API | [GitHub](https://github.com/Rouast-Labs/vitallens-python) |
-| **[JavaScript Library](https://github.com/Rouast-Labs/vitallens.js)** | G, POS, CHROM, VitalLens API | [GitHub](https://github.com/Rouast-Labs/vitallens.js) |
+| 📌 Tool | 🚀 Features | ⚡ Methods | 🔗 Get Started |
+|---------|-------------|-------------|----------------|
+| **[Python Library](https://github.com/Rouast-Labs/vitallens-python)** | File analysis | G, POS, CHROM, VitalLens API | [GitHub](https://github.com/Rouast-Labs/vitallens-python) |
+| **[JavaScript Library](https://github.com/Rouast-Labs/vitallens.js)** | Webcam or file analysis | G, POS, CHROM, VitalLens API | [GitHub](https://github.com/Rouast-Labs/vitallens.js) |
+| **[iOS SDK](https://github.com/Rouast-Labs/vitallens-ios)** | Webcam or file analysis | VitalLens API | [GitHub](https://github.com/Rouast-Labs/vitallens-ios) |
 | **[iOS App](https://apps.apple.com/us/app/vitallens/id6472757649)** | Live HR + RR Estimation | [App Store](https://apps.apple.com/us/app/vitallens/id6472757649) |
 | **[Rouast Labs](https://rouast.com/api)** | More about our research & tech | [Website](https://rouast.com) |
 
