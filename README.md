@@ -5,11 +5,11 @@ Check out our latest libraries and apps!
 
 | 📌 Tool | 🚀 Features | ⚡ Methods | 🔗 Get Started |
 |---------|-------------|-------------|----------------|
-| **[Python Library](https://github.com/Rouast-Labs/vitallens-python)** | File analysis | G, POS, CHROM, VitalLens API | [GitHub](https://github.com/Rouast-Labs/vitallens-python) |
-| **[JavaScript Library](https://github.com/Rouast-Labs/vitallens.js)** | Webcam or file analysis | G, POS, CHROM, VitalLens API | [GitHub](https://github.com/Rouast-Labs/vitallens.js) |
-| **[iOS SDK](https://github.com/Rouast-Labs/vitallens-ios)** | Webcam or file analysis | VitalLens API | [GitHub](https://github.com/Rouast-Labs/vitallens-ios) |
-| **[iOS App](https://apps.apple.com/us/app/vitallens/id6472757649)** | Live HR + RR Estimation | [App Store](https://apps.apple.com/us/app/vitallens/id6472757649) |
-| **[Rouast Labs](https://rouast.com/api)** | More about our research & tech | [Website](https://rouast.com) |
+| **[Python Library](https://github.com/Rouast-Labs/vitallens-python)** | File analysis (HR, RR, HRV) | G, POS, CHROM, VitalLens API | [GitHub](https://github.com/Rouast-Labs/vitallens-python) |
+| **[JavaScript Library](https://github.com/Rouast-Labs/vitallens.js)** | Webcam or file analysis (HR, RR, HRV) | G, POS, CHROM, VitalLens API | [GitHub](https://github.com/Rouast-Labs/vitallens.js) |
+| **[iOS SDK](https://github.com/Rouast-Labs/vitallens-ios)** | Webcam or file analysis (HR, RR, HRV) | VitalLens API | [GitHub](https://github.com/Rouast-Labs/vitallens-ios) |
+| **[iOS App](https://apps.apple.com/us/app/vitallens/id6472757649)** | Webcam processing (HR, RR) | VitalLens | [App Store](https://apps.apple.com/us/app/vitallens/id6472757649) |
+| **[Rouast Labs](https://rouast.com/api)** | More about our research & tech | VitalLens | [Website](https://rouast.com) |
 
 This is a simple implementation of rPPG, a way to measure heart rate without skin contact. It uses a video recording or live feed of the face to analyse subtle changes in skin color.
 
