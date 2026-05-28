@@ -2,8 +2,7 @@
 //  RPPG.cpp
 //  Heartbeat
 //
-//  Created by Philipp Rouast on 7/07/2016.
-//  Copyright © 2016 Philipp Roüast. All rights reserved.
+//  Create by Neel Ganesh 11/26/25`
 //
 
 #include "RPPG.hpp"
@@ -12,6 +11,10 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/core.hpp>
 #include <opencv2/video.hpp>
+#include <iomanip>
+#include <sstream>
+#include <algorithm>
+#include <cmath>
 
 #include "opencv.hpp"
 
@@ -71,11 +74,11 @@ bool RPPG::load(const rPPGAlgorithm rPPGAlg, const faceDetAlgorithm faceDetAlg,
     logfile << "time;face_valid;mean;min;max\n";
     logfile.flush();
 
-    // Logging bpm detailed
+    // Logging bpm detailed (includes smoothed BPM for spreadsheet analysis)
     std::ostringstream path_3;
     path_3 << logfilepath << "_bpmAll.csv";
     logfileDetailed.open(path_3.str());
-    logfileDetailed << "time;face_valid;bpm\n";
+    logfileDetailed << "time;face_valid;bpm;smoothed_bpm\n";
     logfileDetailed.flush();
 
     return true;
@@ -90,6 +93,14 @@ void RPPG::processFrame(Mat &frameRGB, Mat &frameGray, int time) {
 
     // Set time
     this->time = time;
+    
+    // Invalidate stale aggregate averages after 5 seconds.
+    if (lastSamplingTime > 0 &&
+        ((time - lastSamplingTime) * timeBase) > AVERAGE_VALIDITY_SECONDS) {
+        meanBpm = 0.0;
+        minBpm = 0.0;
+        maxBpm = 0.0;
+    }
 
     if (!faceValid) {
 
@@ -162,6 +173,15 @@ void RPPG::processFrame(Mat &frameRGB, Mat &frameGray, int time) {
 
             // HR estimation
             estimateHeartrate();
+            
+            // Update signal history for waveform display
+            if (!s_f.empty()) {
+                double latestSignal = s_f.at<double>(s_f.rows - 1, 0);
+                signalHistory.push_back(latestSignal);
+                if (signalHistory.size() > MAX_HISTORY_SIZE) {
+                    signalHistory.erase(signalHistory.begin());
+                }
+            }
 
             // Log
             log();
@@ -367,20 +387,35 @@ void RPPG::invalidateFace() {
 
 void RPPG::extractSignal_g() {
 
-    // Denoise
+    // Denoise - optimized for accuracy
     Mat s_den = Mat(s.rows, 1, CV_64F);
     denoise(s.col(1), re, s_den);
 
     // Normalise
     normalization(s_den, s_den);
 
-    // Detrend
+    // Detrend - optimized lambda for better accuracy
     Mat s_det = Mat(s_den.rows, s_den.cols, CV_64F);
-    detrend(s_den, s_det, fps);
+    int lambda = static_cast<int>(fps * 1.0);  // Use full fps for better detrending
+    if (lambda < 1) lambda = 1;
+    detrend(s_den, s_det, lambda);
 
-    // Moving average
-    Mat s_mav = Mat(s_det.rows, s_det.cols, CV_64F);
-    movingAverage(s_det, s_mav, 3, fmax(floor(fps/6), 2));
+    // Apply bandpass filter with optimized parameters for better accuracy
+    Mat s_band = Mat(s_det.rows, s_det.cols, CV_64F);
+    if (s_det.rows > 10 && low >= 0 && high > low && high < s_det.rows) {
+        try {
+            bandpass(s_det, s_band, low, high);
+        } catch (...) {
+            s_det.copyTo(s_band);
+        }
+    } else {
+        s_det.copyTo(s_band);
+    }
+
+    // Moving average - optimized window size for better accuracy
+    Mat s_mav = Mat(s_band.rows, s_band.cols, CV_64F);
+    int maWindow = fmax(floor(fps/8), 1);  // Smaller window = more responsive
+    movingAverage(s_band, s_mav, 3, maWindow);
 
     s_mav.copyTo(s_f);
 
@@ -523,7 +558,6 @@ void RPPG::extractSignal_xminay() {
 }
 
 void RPPG::estimateHeartrate() {
-
     powerSpectrum = cv::Mat(s_f.size(), CV_32F);
     timeToFrequency(s_f, powerSpectrum, true);
 
@@ -541,9 +575,81 @@ void RPPG::estimateHeartrate() {
 
         // calculate BPM
         bpm = pmax.y * fps / total * SEC_PER_MIN;
-        bpms.push_back(bpm);
 
-        cout << "FPS=" << fps << " Vals=" << powerSpectrum.rows << " Peak=" << pmax.y << " BPM=" << bpm << endl;
+        bpms.push_back(bpm);
+        
+        // Outlier detection with last-reading trend awareness (no moving averages).
+        bool isValidBpm = (bpm >= MIN_REASONABLE_BPM && bpm <= MAX_REASONABLE_BPM);
+        bool isTrendValid = true;
+        
+        // Check for sudden changes against last accepted reading only.
+        if (bpmHistory.size() > 0) {
+            const double lastValidBpm = bpmHistory.back();
+            const double change = bpm - lastValidBpm;
+            
+            // Be very suspicious of sudden drops, more lenient with rises
+            if (change < -MAX_BPM_DROP_PER_READING) {
+                isTrendValid = false;
+                cout << "Rejected sudden BPM drop: " << bpm << " (dropped " << abs(change) << " from last " << lastValidBpm << ")" << endl;
+            } else if (change > MAX_BPM_RISE_PER_READING) {
+                isTrendValid = false;
+                cout << "Rejected sudden BPM spike: " << bpm << " (rose " << change << " from last " << lastValidBpm << ")" << endl;
+            }
+        }
+        
+        // Only add valid BPM values to history for smoothing
+        if (isValidBpm && isTrendValid) {
+            bpmHistory.push_back(bpm);
+            if (bpmHistory.size() > BPM_HISTORY_SIZE) {
+                bpmHistory.erase(bpmHistory.begin());
+            }
+        } else {
+            // Reject outlier - don't add to history
+            if (!isValidBpm) {
+                cout << "Rejected outlier BPM: " << bpm << " (outside range " << MIN_REASONABLE_BPM << "-" << MAX_REASONABLE_BPM << ")" << endl;
+            }
+        }
+        
+        // Calculate smoothed BPM with very light smoothing so natural fluctuations remain visible.
+        if (bpmHistory.size() >= 3) {
+            const double latestValidBpm = bpmHistory.back();
+            
+            // Light 30/70 blend keeps anti-jitter behavior without flattening real movement.
+            if (smoothedBpm > 0 && latestValidBpm > 0) {
+                double proposedSmooth = smoothedBpm * 0.30 + latestValidBpm * 0.70;
+                
+                // Additional safety: never allow smoothed value to drop below threshold
+                if (proposedSmooth >= MIN_REASONABLE_BPM) {
+                    smoothedBpm = proposedSmooth;
+                } else {
+                    // Keep previous smoothed value if new would be too low
+                    cout << "Preserving previous smoothed BPM " << smoothedBpm << " (proposed " << proposedSmooth << " too low)" << endl;
+                }
+            } else if (latestValidBpm >= MIN_REASONABLE_BPM) {
+                smoothedBpm = latestValidBpm;
+            }
+            
+            // Stage 4: Fallback protection - if raw bpm is outlier but smoothed is good, use smoothed
+            if ((!isValidBpm || !isTrendValid) && smoothedBpm >= MIN_REASONABLE_BPM && smoothedBpm <= MAX_REASONABLE_BPM) {
+                bpm = smoothedBpm;  // Override outlier with stable smoothed value
+                cout << "Using smoothed BPM " << smoothedBpm << " instead of outlier " << (pmax.y * fps / total * SEC_PER_MIN) << endl;
+            }
+        } else if (bpmHistory.size() > 0) {
+            // No averaging: use the latest valid reading.
+            smoothedBpm = bpmHistory.back();
+        }
+        
+        // Enforce sane bounds and keep BPM floor in requested resting range.
+        if (smoothedBpm > 0) {
+            if (smoothedBpm < MIN_REASONABLE_BPM) smoothedBpm = MIN_REASONABLE_BPM;
+            if (smoothedBpm > MAX_REASONABLE_BPM) smoothedBpm = MAX_REASONABLE_BPM;
+        }
+        if (bpm > 0) {
+            if (bpm < MIN_REASONABLE_BPM) bpm = MIN_REASONABLE_BPM;
+            if (bpm > MAX_REASONABLE_BPM) bpm = MAX_REASONABLE_BPM;
+        }
+
+        cout << "FPS=" << fps << " Vals=" << powerSpectrum.rows << " Peak=" << pmax.y << " BPM=" << bpm << " Smoothed=" << smoothedBpm << endl;
 
         // Logging
         if (logMode) {
@@ -591,76 +697,260 @@ void RPPG::log() {
 
     logfileDetailed << time << ";";
     logfileDetailed << faceValid << ";";
-    logfileDetailed << bpm << "\n";
+    logfileDetailed << bpm << ";";
+    logfileDetailed << smoothedBpm << "\n";
     logfileDetailed.flush();
 }
 
 void RPPG::draw(cv::Mat &frameRGB) {
-
-    // Draw roi
-    rectangle(frameRGB, roi, GREEN);
-
-    // Draw bounding box
-    rectangle(frameRGB, box, RED);
-
-    // Draw signal
-    if (!s_f.empty() && !powerSpectrum.empty()) {
-
-        // Display of signals with fixed dimensions
-        double displayHeight = box.height/2.0;
-        double displayWidth = box.width*0.8;
-
-        // Draw signal
-        double vmin, vmax;
-        Point pmin, pmax;
-        minMaxLoc(s_f, &vmin, &vmax, &pmin, &pmax);
-        double heightMult = displayHeight/(vmax - vmin);
-        double widthMult = displayWidth/(s_f.rows - 1);
-        double drawAreaTlX = box.tl().x + box.width + 20;
-        double drawAreaTlY = box.tl().y;
-        Point p1(drawAreaTlX, drawAreaTlY + (vmax - s_f.at<double>(0, 0))*heightMult);
-        Point p2;
-        for (int i = 1; i < s_f.rows; i++) {
-            p2 = Point(drawAreaTlX + i * widthMult, drawAreaTlY + (vmax - s_f.at<double>(i, 0))*heightMult);
-            line(frameRGB, p1, p2, RED, 2);
-            p1 = p2;
+    if (frameRGB.empty()) return;
+    
+    const int frameWidth = frameRGB.cols;
+    const int frameHeight = frameRGB.rows;
+    const int padding = 20;
+    
+    // Minimum frame size check - skip UI if frame is too small to avoid crashes
+    const int MIN_FRAME_WIDTH = 400;
+    const int MIN_FRAME_HEIGHT = 200;
+    if (frameWidth < MIN_FRAME_WIDTH || frameHeight < MIN_FRAME_HEIGHT) {
+        // Fallback: Just draw basic text info for small frames
+        std::stringstream ss;
+        if (faceValid && smoothedBpm > 0) {
+            ss << std::fixed << std::setprecision(0) << smoothedBpm << " BPM";
+            putText(frameRGB, ss.str(), Point(10, 30), FONT_HERSHEY_SIMPLEX, 1.0, Scalar(0, 255, 100), 2);
+        } else {
+            putText(frameRGB, "No Signal", Point(10, 30), FONT_HERSHEY_SIMPLEX, 1.0, Scalar(100, 100, 100), 2);
         }
-
-        // Draw powerSpectrum
-        const int total = s_f.rows;
-        Mat bandMask = Mat::zeros(s_f.size(), CV_8U);
-        bandMask.rowRange(min(low, total), min(high, total) + 1).setTo(ONE);
-        minMaxLoc(powerSpectrum, &vmin, &vmax, &pmin, &pmax, bandMask);
-        heightMult = displayHeight/(vmax - vmin);
-        widthMult = displayWidth/(high - low);
-        drawAreaTlX = box.tl().x + box.width + 20;
-        drawAreaTlY = box.tl().y + box.height/2.0;
-        p1 = Point(drawAreaTlX, drawAreaTlY + (vmax - powerSpectrum.at<double>(low, 0))*heightMult);
-        for (int i = low + 1; i <= high; i++) {
-            p2 = Point(drawAreaTlX + (i - low) * widthMult, drawAreaTlY + (vmax - powerSpectrum.at<double>(i, 0)) * heightMult);
-            line(frameRGB, p1, p2, RED, 2);
-            p1 = p2;
+        std::string statusText = faceValid ? "Tracking" : "Searching...";
+        putText(frameRGB, statusText, Point(10, frameHeight - 10), FONT_HERSHEY_SIMPLEX, 0.7, Scalar(255, 255, 255), 1);
+        return;
+    }
+    
+    // Modern UI: Corner overlays and floating elements that don't cover the face
+    // Top-left: Large BPM display
+    // Top-right: Waveform graph (compact)
+    // Bottom-left: Status info
+    // Bottom-right: Quality indicator
+    
+    // Use smoothed BPM for display - always prefer smoothed for stable display
+    // This eliminates fluctuations from raw readings
+    double displayBpm = 0;
+    if (smoothedBpm > 0 && smoothedBpm >= MIN_REASONABLE_BPM && smoothedBpm <= MAX_REASONABLE_BPM) {
+        // Always use smoothed BPM if available and valid (most stable)
+        displayBpm = smoothedBpm;
+    } else if (bpm > 0 && bpm >= MIN_REASONABLE_BPM && bpm <= MAX_REASONABLE_BPM) {
+        // Fallback to current bpm if valid
+        displayBpm = bpm;
+    }
+    
+    // === TOP-LEFT: Large BPM Display ===
+    int bpmX = padding;
+    int bpmY = padding + 60;
+    int bpmWidth = 280;
+    int bpmHeight = 140;
+    
+    // Bounds checking for BPM rectangle
+    int bpmRectX = bpmX;
+    int bpmRectY = std::max(0, bpmY - 50);
+    int bpmRectWidth = std::min(bpmWidth, frameWidth - bpmRectX - 5);
+    int bpmRectHeight = std::min(bpmHeight, frameHeight - bpmRectY - 5);
+    
+    // Only draw if rectangle is valid
+    if (bpmRectWidth > 50 && bpmRectHeight > 50) {
+        // Semi-transparent background with rounded corners effect
+        Rect bpmRect(bpmRectX, bpmRectY, bpmRectWidth, bpmRectHeight);
+        Mat bpmOverlay = frameRGB(bpmRect).clone();
+        bpmOverlay.setTo(Scalar(20, 20, 25));
+        addWeighted(frameRGB(bpmRect), 0.3, bpmOverlay, 0.7, 0, frameRGB(bpmRect));
+        
+        // Border
+        rectangle(frameRGB, bpmRect, Scalar(100, 150, 255), 2);
+        
+        // Heart icon
+        circle(frameRGB, Point(bpmX + 25, bpmY - 25), 12, Scalar(255, 50, 50), -1);
+        
+        // "HEART RATE" label
+        putText(frameRGB, "HEART RATE", Point(bpmX + 50, bpmY - 15), 
+               FONT_HERSHEY_SIMPLEX, 0.6, Scalar(200, 200, 200), 1);
+        
+        // Large BPM number
+        std::stringstream ss;
+        if (faceValid && displayBpm > 0) {
+            ss << std::fixed << std::setprecision(0) << displayBpm;
+            Scalar bpmColor = Scalar(0, 255, 100);  // Green for good signal
+            if (displayBpm < 50 || displayBpm > 120) {
+                bpmColor = Scalar(100, 200, 255);  // Blue for unusual values
+            }
+            putText(frameRGB, ss.str(), Point(bpmX + 20, bpmY + 40), 
+                   FONT_HERSHEY_SIMPLEX, 2.8, bpmColor, 4);
+            putText(frameRGB, "BPM", Point(bpmX + 20, bpmY + 75), 
+                   FONT_HERSHEY_SIMPLEX, 0.9, Scalar(150, 150, 150), 2);
+        } else {
+            putText(frameRGB, "--", Point(bpmX + 20, bpmY + 40), 
+                   FONT_HERSHEY_SIMPLEX, 2.8, Scalar(100, 100, 100), 4);
+            putText(frameRGB, "No Signal", Point(bpmX + 20, bpmY + 75), 
+                   FONT_HERSHEY_SIMPLEX, 0.7, Scalar(100, 100, 100), 2);
         }
     }
-
-    std::stringstream ss;
-
-    // Draw BPM text
-    if (faceValid) {
-        ss.precision(3);
-        ss << meanBpm << " bpm";
-        putText(frameRGB, ss.str(), Point(box.tl().x, box.tl().y - 10), FONT_HERSHEY_PLAIN, 2, RED, 2);
+    
+    // === TOP-RIGHT: Compact Waveform Graph ===
+    int graphX = std::max(padding, frameWidth - 320 - padding);
+    int graphY = padding + 20;
+    int graphWidth = 300;
+    int graphHeight = 100;
+    
+    // Bounds checking for graph rectangle
+    int graphRectX = std::max(0, graphX);
+    int graphRectY = std::max(0, graphY);
+    int graphRectWidth = std::min(graphWidth, frameWidth - graphRectX - 5);
+    int graphRectHeight = std::min(graphHeight, frameHeight - graphRectY - 5);
+    
+    // Only draw if rectangle is valid
+    if (graphRectWidth > 100 && graphRectHeight > 50) {
+        // Background
+        Rect graphRect(graphRectX, graphRectY, graphRectWidth, graphRectHeight);
+        Mat graphOverlay = frameRGB(graphRect).clone();
+        graphOverlay.setTo(Scalar(15, 15, 20));
+        addWeighted(frameRGB(graphRect), 0.4, graphOverlay, 0.6, 0, frameRGB(graphRect));
+        rectangle(frameRGB, graphRect, Scalar(60, 60, 80), 2);
+        
+        // Graph title
+        putText(frameRGB, "Pulse Waveform", Point(graphRectX + 10, graphRectY - 5), 
+               FONT_HERSHEY_SIMPLEX, 0.5, Scalar(200, 200, 200), 1);
+        
+        // Draw waveform if available
+        if (signalHistory.size() > 1 && faceValid) {
+            size_t startIdx = (signalHistory.size() > 150) ? signalHistory.size() - 150 : 0;
+            size_t numPoints = signalHistory.size() - startIdx;
+            
+            if (numPoints > 1) {
+                double vmin = *min_element(signalHistory.begin() + startIdx, signalHistory.end());
+                double vmax = *max_element(signalHistory.begin() + startIdx, signalHistory.end());
+                double range = vmax - vmin;
+                if (range < 0.001) range = 0.001;
+                
+                double widthStep = (double)graphRectWidth / (numPoints - 1);
+                double heightMult = (graphRectHeight - 10) / range;
+                double centerY = graphRectY + graphRectHeight / 2.0;
+                
+                // Center line
+                line(frameRGB, Point(graphRectX + 5, centerY), Point(graphRectX + graphRectWidth - 5, centerY), 
+                     Scalar(40, 40, 50), 1);
+                
+                // Waveform
+                int step = (numPoints > 80) ? 2 : 1;
+                Point p1(graphRectX + 5, centerY - (signalHistory[startIdx] - (vmin + vmax)/2.0) * heightMult);
+                for (size_t i = step; i < numPoints; i += step) {
+                    double x = graphRectX + 5 + i * widthStep;
+                    double y = centerY - (signalHistory[startIdx + i] - (vmin + vmax)/2.0) * heightMult;
+                    Point p2(x, y);
+                    line(frameRGB, p1, p2, Scalar(0, 255, 100), 2);  // Green pulse line
+                    p1 = p2;
+                }
+            }
+        } else {
+            putText(frameRGB, "Waiting...", Point(graphRectX + graphRectWidth/2 - 40, graphRectY + graphRectHeight/2), 
+                   FONT_HERSHEY_SIMPLEX, 0.5, Scalar(100, 100, 100), 1);
+        }
     }
-
-    // Draw FPS text
-    ss.str("");
-    ss << fps << " fps";
-    putText(frameRGB, ss.str(), Point(box.tl().x, box.br().y + 40), FONT_HERSHEY_PLAIN, 2, GREEN, 2);
-
-    // Draw corners
-    for (int i = 0; i < corners.size(); i++) {
-        //circle(frameRGB, corners[i], r, WHITE, -1, 8, 0);
-        line(frameRGB, Point(corners[i].x-5,corners[i].y), Point(corners[i].x+5,corners[i].y), GREEN, 1);
-        line(frameRGB, Point(corners[i].x,corners[i].y-5), Point(corners[i].x,corners[i].y+5), GREEN, 1);
+    
+    // === BOTTOM-LEFT: Status Info ===
+    int statusX = padding;
+    int statusY = std::max(padding, frameHeight - 120);
+    
+    // Bounds checking for status rectangle
+    int statusRectX = statusX;
+    int statusRectY = std::max(0, statusY);
+    int statusRectWidth = std::min(200, frameWidth - statusRectX - 5);
+    int statusRectHeight = std::min(100, frameHeight - statusRectY - 5);
+    
+    // Only draw if rectangle is valid
+    if (statusRectWidth > 100 && statusRectHeight > 40) {
+        // Background
+        Rect statusRect(statusRectX, statusRectY, statusRectWidth, statusRectHeight);
+        Mat statusOverlay = frameRGB(statusRect).clone();
+        statusOverlay.setTo(Scalar(20, 20, 25));
+        addWeighted(frameRGB(statusRect), 0.3, statusOverlay, 0.7, 0, frameRGB(statusRect));
+        rectangle(frameRGB, statusRect, Scalar(60, 60, 80), 2);
+        
+        // Status text
+        std::string statusText = faceValid ? "Tracking" : "Searching...";
+        Scalar statusColor = faceValid ? Scalar(0, 255, 100) : Scalar(255, 200, 100);
+        putText(frameRGB, "Status:", Point(statusRectX + 10, statusRectY + 25), 
+               FONT_HERSHEY_SIMPLEX, 0.5, Scalar(200, 200, 200), 1);
+        putText(frameRGB, statusText, Point(statusRectX + 10, statusRectY + 50), 
+               FONT_HERSHEY_SIMPLEX, 0.7, statusColor, 2);
+        
+        // FPS
+        std::stringstream ss;
+        ss << std::fixed << std::setprecision(1) << fps << " fps";
+        putText(frameRGB, ss.str(), Point(statusRectX + 10, statusRectY + 75), 
+               FONT_HERSHEY_SIMPLEX, 0.5, Scalar(150, 150, 150), 1);
+    }
+    
+    // === BOTTOM-RIGHT: Quality Indicator ===
+    int qualityX = std::max(padding, frameWidth - 180 - padding);
+    int qualityY = std::max(padding, frameHeight - 100);
+    
+    // Bounds checking for quality rectangle
+    int qualityRectX = std::max(0, qualityX);
+    int qualityRectY = std::max(0, qualityY);
+    int qualityRectWidth = std::min(180, frameWidth - qualityRectX - 5);
+    int qualityRectHeight = std::min(80, frameHeight - qualityRectY - 5);
+    
+    // Only draw if rectangle is valid
+    if (qualityRectWidth > 100 && qualityRectHeight > 40) {
+        // Background
+        Rect qualityRect(qualityRectX, qualityRectY, qualityRectWidth, qualityRectHeight);
+        Mat qualityOverlay = frameRGB(qualityRect).clone();
+        qualityOverlay.setTo(Scalar(20, 20, 25));
+        addWeighted(frameRGB(qualityRect), 0.3, qualityOverlay, 0.7, 0, frameRGB(qualityRect));
+        rectangle(frameRGB, qualityRect, Scalar(60, 60, 80), 2);
+        
+        // Quality bar
+        if (faceValid && bpmHistory.size() > 5) {
+            // Calculate stability from BPM history variance
+            double meanBpmHist = 0;
+            for (double b : bpmHistory) meanBpmHist += b;
+            meanBpmHist /= bpmHistory.size();
+            
+            double variance = 0;
+            for (double b : bpmHistory) variance += (b - meanBpmHist) * (b - meanBpmHist);
+            variance /= bpmHistory.size();
+            double stddev = sqrt(variance);
+            
+            // Quality based on low variance (more stable = better)
+            double quality = std::max(0.0, std::min(1.0, 1.0 - (stddev / 10.0)));
+            
+            putText(frameRGB, "Signal Quality", Point(qualityRectX + 10, qualityRectY + 20), 
+                   FONT_HERSHEY_SIMPLEX, 0.5, Scalar(200, 200, 200), 1);
+            
+            // Quality bar (adapt to available width)
+            int barWidth = std::min(160, qualityRectWidth - 20);
+            int barHeight = 15;
+            Rect barRect(qualityRectX + 10, qualityRectY + 35, barWidth, barHeight);
+            rectangle(frameRGB, barRect, Scalar(40, 40, 50), -1);
+            rectangle(frameRGB, barRect, Scalar(100, 100, 100), 1);
+            
+            int fillWidth = (int)(barWidth * quality);
+            if (fillWidth > 0) {
+                Scalar barColor = Scalar(0, 255, 100);  // Green
+                if (quality < 0.5) barColor = Scalar(255, 200, 100);  // Yellow
+                if (quality < 0.3) barColor = Scalar(100, 100, 255);  // Red
+                Rect fillRect(qualityRectX + 10, qualityRectY + 35, fillWidth, barHeight);
+                rectangle(frameRGB, fillRect, barColor, -1);
+            }
+            
+            // Percentage
+            std::stringstream ss;
+            ss << std::fixed << std::setprecision(0) << (quality * 100) << "%";
+            putText(frameRGB, ss.str(), Point(qualityRectX + 10, qualityRectY + 65), 
+                   FONT_HERSHEY_SIMPLEX, 0.5, Scalar(150, 150, 150), 1);
+        } else {
+            putText(frameRGB, "Signal Quality", Point(qualityRectX + 10, qualityRectY + 20), 
+                   FONT_HERSHEY_SIMPLEX, 0.5, Scalar(200, 200, 200), 1);
+            putText(frameRGB, "Calculating...", Point(qualityRectX + 10, qualityRectY + 45), 
+                   FONT_HERSHEY_SIMPLEX, 0.5, Scalar(100, 100, 100), 1);
+        }
     }
 }

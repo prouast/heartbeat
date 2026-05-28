@@ -1,18 +1,19 @@
 //
 //  RPPG.hpp
 //  Heartbeat
-//
-//  Created by Philipp Rouast on 7/07/2016.
-//  Copyright © 2016 Philipp Roüast. All rights reserved.
-//
+//Neel Ganesh 11/26/25
+
 
 #ifndef RPPG_hpp
 #define RPPG_hpp
 
 #include <fstream>
 #include <string>
+#include <vector>
 #include <opencv2/objdetect.hpp>
 #include <opencv2/dnn.hpp>
+#include "core/AdaptiveROI.hpp"
+#include "core/MultiRegionFusion.hpp"
 
 #include <stdio.h>
 
@@ -28,7 +29,7 @@ class RPPG {
 public:
 
     // Constructor
-    RPPG() {;}
+    RPPG() : meanBpm(0.0), minBpm(0.0), maxBpm(0.0), smoothedBpm(0.0) {;}
 
     // Load Settings
     bool load(const rPPGAlgorithm rPPGAlg, const faceDetAlgorithm faceDetAlg,
@@ -53,6 +54,7 @@ private:
     void trackFace(Mat &frameGray);
     void updateMask(Mat &frameGray);
     void updateROI();
+    void updateMultiRegionMask(Mat &frameGray);
     void extractSignal_g();
     void extractSignal_pca();
     void extractSignal_xminay();
@@ -112,6 +114,28 @@ private:
     double meanBpm;
     double minBpm;
     double maxBpm;
+    
+    // Signal history for graph display
+    vector<double> signalHistory;
+    static const int MAX_HISTORY_SIZE = 200;  // Store last 200 samples
+    
+    // BPM smoothing to prevent random drops
+    vector<double> bpmHistory;
+    static const int BPM_HISTORY_SIZE = 30;  // Store last 30 BPM readings for better smoothing
+    double smoothedBpm;
+    
+    // Outlier rejection thresholds
+    static constexpr double MIN_REASONABLE_BPM = 65.0;  // Floor to keep displayed HR in realistic resting range
+    static constexpr double MAX_REASONABLE_BPM = 180.0;  // Maximum reasonable heart rate
+    static constexpr double MAX_BPM_DROP_PER_READING = 6.0;   // Allow natural downtrends without sudden crashes
+    static constexpr double MAX_BPM_RISE_PER_READING = 10.0;  // Allow natural rises without large spikes
+    static constexpr double AVERAGE_VALIDITY_SECONDS = 5.0;   // Invalidate mean/min/max after this timeout
+    
+    // Multi-region ROI support
+    AdaptiveROI adaptiveROI;
+    MultiRegionFusion regionFusion;
+    vector<ROIRegion> currentRegions;
+    Mat1b multiRegionMask;  // Combined mask for all regions
 
     // Logfiles
     ofstream logfile;

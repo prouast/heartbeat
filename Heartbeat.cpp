@@ -296,7 +296,8 @@ int main(int argc, char * argv[]) {
 
         if (gui) {
             imshow(window_title.str(), frameRGB);
-            if (waitKey(30) >= 0) break;
+            // Use waitKey(1) for faster UI updates (non-blocking, ~1000 FPS max)
+            if (waitKey(1) >= 0) break;
         }
 
         i++;

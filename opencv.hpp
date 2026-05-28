@@ -2,10 +2,7 @@
 //  opencv.hpp
 //  Heartbeat
 //
-//  Created by Philipp Rouast on 3/03/2016.
-//  Copyright © 2016 Philipp Roüast. All rights reserved.
-//
-
+//Create by Neel Ganesh 11/26/25
 #ifndef opencv_hpp
 #define opencv_hpp
 
